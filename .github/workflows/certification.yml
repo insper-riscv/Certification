@@ -33,13 +33,14 @@ jobs:
         with:
           submodules: true
 
-      - name: Checkout Core and RV32IM (the VHDL sources)
-        # config.yaml's sim.vhdl_sources are "../Core/..." (the core) and
-        # "../RV32IM/src/..." (the memories and the simulation top), true
-        # once both are cloned as siblings of this checkout.
+      - name: Checkout Core, Memory and RV32IM (the VHDL sources)
+        # config.yaml's sim.vhdl_sources are "../Core/..." (the core),
+        # "../Memory/..." (the memories) and "../RV32IM/src/..." (the
+        # simulation top), true once all are cloned as siblings of this checkout.
         run: |
-          rm -rf ../Core ../RV32IM
+          rm -rf ../Core ../Memory ../RV32IM
           git clone --depth 1 https://github.com/insper-riscv/Core.git ../Core
+          git clone --depth 1 https://github.com/insper-riscv/Memory.git ../Memory
           git clone --depth 1 https://github.com/insper-riscv/RV32IM.git ../RV32IM
 
       - name: Put ACT4's reference-model wrapper on PATH
