@@ -5,7 +5,8 @@
 #
 # ACT4 runs entirely in simulation (cocotb/GHDL), never on the board, on
 # the same pipeline the hardware runs. The VHDL comes from a sibling
-# checkout of RV32IM (../RV32IM), which CI clones next to this repo.
+# checkouts of Core (../Core, the processor) and RV32IM (../RV32IM, the
+# memories and the simulation top), which CI clones next to this repo.
 
 toolchain:
   # The RISC-V GCC of insper-riscv/Infra (infra-toolchain image).
@@ -31,41 +32,41 @@ sim:
   toplevel: rv32i3stage_core_sim_test
   # In dependency order, relative to this project's root.
   vhdl_sources:
-    - ../RV32IM/src/rv32i_ctrl_consts.vhd
-    - ../RV32IM/src/rv32im_pipeline_types.vhd
-    - ../RV32IM/src/genericRegister.vhd
-    - ../RV32IM/src/genericAdder.vhd
-    - ../RV32IM/src/genericAdderU.vhd
-    - ../RV32IM/src/genericMux2x1.vhd
-    - ../RV32IM/src/genericMux3x1.vhd
-    - ../RV32IM/src/FlipFlop.vhd
-    - ../RV32IM/src/ALU.vhd
-    - ../RV32IM/src/RegFile.vhd
+    - ../Core/common/rv32i_ctrl_consts.vhd
+    - ../Core/common/rv32im_pipeline_types.vhd
+    - ../Core/common/genericRegister.vhd
+    - ../Core/common/genericAdder.vhd
+    - ../Core/common/genericAdderU.vhd
+    - ../Core/common/genericMux2x1.vhd
+    - ../Core/common/genericMux3x1.vhd
+    - ../Core/common/FlipFlop.vhd
+    - ../Core/I/ALU.vhd
+    - ../Core/common/RegFile.vhd
     - ../RV32IM/src/RAM_simulation.vhd
     - ../RV32IM/src/ROM_simulation.vhd
-    - ../RV32IM/src/InstructionDecoder.vhd
-    - ../RV32IM/src/ExtenderImm.vhd
-    - ../RV32IM/src/ExtenderRAM.vhd
-    - ../RV32IM/src/StoreManager.vhd
+    - ../Core/common/InstructionDecoder.vhd
+    - ../Core/I/ExtenderImm.vhd
+    - ../Core/I/ExtenderRAM.vhd
+    - ../Core/I/StoreManager.vhd
     - ../RV32IM/src/clk_gen_3way.vhd
-    - ../RV32IM/src/control_unit.vhd
-    - ../RV32IM/src/bubble_mux.vhd
-    - ../RV32IM/src/forwarding_unit.vhd
-    - ../RV32IM/src/hazard_detection_unit.vhd
-    - ../RV32IM/src/extendSigned.vhd
-    - ../RV32IM/src/decoderM.vhd
-    - ../RV32IM/src/booth_multiplier_rv32.vhd
-    - ../RV32IM/src/non_restoring_divider_rv32.vhd
-    - ../RV32IM/src/mult.vhd
-    - ../RV32IM/src/div.vhd
-    - ../RV32IM/src/divu.vhd
-    - ../RV32IM/src/multdiv.vhd
-    - ../RV32IM/src/pc_fetch.vhd
-    - ../RV32IM/src/reg_IF_ID.vhd
-    - ../RV32IM/src/reg_ID_EX.vhd
-    - ../RV32IM/src/reg_EX_MEM.vhd
-    - ../RV32IM/src/reg_MEM_WB.vhd
-    - ../RV32IM/src/rv32im_pipeline_core.vhd
+    - ../Core/common/control_unit.vhd
+    - ../Core/common/bubble_mux.vhd
+    - ../Core/common/forwarding_unit.vhd
+    - ../Core/common/hazard_detection_unit.vhd
+    - ../Core/common/extendSigned.vhd
+    - ../Core/M/decoderM.vhd
+    - ../Core/M/booth_multiplier_rv32.vhd
+    - ../Core/M/non_restoring_divider_rv32.vhd
+    - ../Core/M/mult.vhd
+    - ../Core/M/div.vhd
+    - ../Core/M/divu.vhd
+    - ../Core/M/multdiv.vhd
+    - ../Core/common/pc_fetch.vhd
+    - ../Core/common/reg_IF_ID.vhd
+    - ../Core/common/reg_ID_EX.vhd
+    - ../Core/common/reg_EX_MEM.vhd
+    - ../Core/common/reg_MEM_WB.vhd
+    - ../Core/cores/rv32im_pipeline_core.vhd
     - ../RV32IM/src/rv32i3stage_core_sim_test.vhd
   ghdl_std: "08"
   parameters:

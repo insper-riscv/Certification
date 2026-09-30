@@ -13,13 +13,16 @@ on the board.
 | `tools/riscv_build/config.yaml` | `sim:` (VHDL sources, toplevel) and `act:` (suite, extensions) |
 | `tools/Tools` | `riscv-tools`, whose `certify` command drives all of it |
 
-The VHDL comes from a sibling checkout of
-[RV32IM](https://github.com/insper-riscv/RV32IM) (`../RV32IM/src`).
+The VHDL comes from sibling checkouts of
+[Core](https://github.com/insper-riscv/Core) (`../Core`, the processor) and
+[RV32IM](https://github.com/insper-riscv/RV32IM) (`../RV32IM/src`, the simulation
+memories and top).
 
 ## Run
 
 ```bash
 git clone --recurse-submodules https://github.com/insper-riscv/Certification.git
+git clone https://github.com/insper-riscv/Core.git     # next to it
 git clone https://github.com/insper-riscv/RV32IM.git   # next to it
 cd Certification
 uv sync
