@@ -1,0 +1,85 @@
+# Configuration of the ACT4 (riscv-arch-test) certification track, driven
+# by `riscv-tools certify`. This repo holds only the certification: the
+# official suite (vendor/riscv-arch-test, a pinned submodule), the DUT
+# target (tools/riscv_build/act/rv32im-min/) and its cocotb testbench.
+#
+# ACT4 runs entirely in simulation (cocotb/GHDL), never on the board, on
+# the same pipeline the hardware runs. The VHDL comes from a sibling
+# checkout of RV32IM (../RV32IM), which CI clones next to this repo.
+
+toolchain:
+  # The RISC-V GCC of insper-riscv/Infra (infra-toolchain image).
+  gcc: riscv32-unknown-elf-gcc
+  objcopy: riscv32-unknown-elf-objcopy
+
+isa:
+  base: i
+  default_ext: ""
+  canonical_order: "MAFDQLCBJTPVNH"
+
+# Only the fields `certify` and the defaults need; ACT4 brings its own
+# linker script (act/rv32im-min/link.ld), memory map and halt/print macros.
+memory:
+  mailbox_addr: 0x0002FFFC
+
+paths:
+  build_dir: build
+
+sim:
+  # The simulation-only top (plain VHDL arrays cocotb can read), not the
+  # hardware top, which instantiates Quartus altsyncram IP.
+  toplevel: rv32i3stage_core_sim_test
+  # In dependency order, relative to this project's root.
+  vhdl_sources:
+    - ../RV32IM/src/rv32i_ctrl_consts.vhd
+    - ../RV32IM/src/rv32im_pipeline_types.vhd
+    - ../RV32IM/src/genericRegister.vhd
+    - ../RV32IM/src/genericAdder.vhd
+    - ../RV32IM/src/genericAdderU.vhd
+    - ../RV32IM/src/genericMux2x1.vhd
+    - ../RV32IM/src/genericMux3x1.vhd
+    - ../RV32IM/src/FlipFlop.vhd
+    - ../RV32IM/src/ALU.vhd
+    - ../RV32IM/src/RegFile.vhd
+    - ../RV32IM/src/RAM_simulation.vhd
+    - ../RV32IM/src/ROM_simulation.vhd
+    - ../RV32IM/src/InstructionDecoder.vhd
+    - ../RV32IM/src/ExtenderImm.vhd
+    - ../RV32IM/src/ExtenderRAM.vhd
+    - ../RV32IM/src/StoreManager.vhd
+    - ../RV32IM/src/clk_gen_3way.vhd
+    - ../RV32IM/src/control_unit.vhd
+    - ../RV32IM/src/bubble_mux.vhd
+    - ../RV32IM/src/forwarding_unit.vhd
+    - ../RV32IM/src/hazard_detection_unit.vhd
+    - ../RV32IM/src/extendSigned.vhd
+    - ../RV32IM/src/decoderM.vhd
+    - ../RV32IM/src/booth_multiplier_rv32.vhd
+    - ../RV32IM/src/non_restoring_divider_rv32.vhd
+    - ../RV32IM/src/mult.vhd
+    - ../RV32IM/src/div.vhd
+    - ../RV32IM/src/divu.vhd
+    - ../RV32IM/src/multdiv.vhd
+    - ../RV32IM/src/pc_fetch.vhd
+    - ../RV32IM/src/reg_IF_ID.vhd
+    - ../RV32IM/src/reg_ID_EX.vhd
+    - ../RV32IM/src/reg_EX_MEM.vhd
+    - ../RV32IM/src/reg_MEM_WB.vhd
+    - ../RV32IM/src/rv32im_pipeline_core.vhd
+    - ../RV32IM/src/rv32i3stage_core_sim_test.vhd
+  ghdl_std: "08"
+  parameters:
+    ROM_FILE: "{hex_path}"
+
+act:
+  vendor_dir: vendor/riscv-arch-test
+  target_config: tools/riscv_build/act/rv32im-min/test_config.yaml
+  # I/M only: the core has no CSR/trap/privilege support yet. Add
+  # extensions (comma-separated) as the RTL grows them.
+  extensions: "I,M"
+  # An architectural test can be far larger than the board's FLASH/RAM, and
+  # ACT4 never runs on hardware, so the simulation memories are sized
+  # generously (link.ld's MEMORY block must match: 4M/2M).
+  sim_parameters:
+    rom_addr_width: "20"
+    ram_addr_width: "19"
