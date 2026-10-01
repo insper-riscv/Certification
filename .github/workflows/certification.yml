@@ -33,15 +33,15 @@ jobs:
         with:
           submodules: true
 
-      - name: Checkout Core, Memory and RV32IM (the VHDL sources)
+      - name: Checkout Core, Memory and TopLevel (the VHDL sources)
         # config.yaml's sim.vhdl_sources are "../Core/..." (the core),
-        # "../Memory/..." (the memories) and "../RV32IM/src/..." (the
+        # "../Memory/..." (the memories) and "../TopLevel/..." (the
         # simulation top), true once all are cloned as siblings of this checkout.
         run: |
-          rm -rf ../Core ../Memory ../RV32IM
+          rm -rf ../Core ../Memory ../TopLevel
           git clone --depth 1 https://github.com/insper-riscv/Core.git ../Core
           git clone --depth 1 https://github.com/insper-riscv/Memory.git ../Memory
-          git clone --depth 1 https://github.com/insper-riscv/RV32IM.git ../RV32IM
+          git clone --depth 1 https://github.com/insper-riscv/TopLevel.git ../TopLevel
 
       - name: Put ACT4's reference-model wrapper on PATH
         # test_config.yaml's ref_model_exe is spike-rv32im-min: Spike with

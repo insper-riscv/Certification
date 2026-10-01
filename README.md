@@ -16,7 +16,7 @@ on the board.
 The VHDL comes from sibling checkouts of
 [Core](https://github.com/insper-riscv/Core) (`../Core`, the processor),
 [Memory](https://github.com/insper-riscv/Memory) (`../Memory`, the memories) and
-[RV32IM](https://github.com/insper-riscv/RV32IM) (`../RV32IM/src`, the simulation top).
+[TopLevel](https://github.com/insper-riscv/TopLevel) (`../TopLevel`, the simulation top).
 
 ## Run
 
@@ -24,7 +24,7 @@ The VHDL comes from sibling checkouts of
 git clone --recurse-submodules https://github.com/insper-riscv/Certification.git
 git clone https://github.com/insper-riscv/Core.git     # next to it
 git clone https://github.com/insper-riscv/Memory.git   # next to it
-git clone https://github.com/insper-riscv/RV32IM.git   # next to it
+git clone https://github.com/insper-riscv/TopLevel.git # next to it
 cd Certification
 uv sync
 uv run riscv-tools --config tools/riscv_build/config.yaml certify

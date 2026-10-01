@@ -6,7 +6,7 @@
 # ACT4 runs entirely in simulation (cocotb/GHDL), never on the board, on
 # the same pipeline the hardware runs. The VHDL comes from a sibling
 # checkouts of Core (../Core, the processor), Memory (../Memory, the
-# memories) and RV32IM (../RV32IM, the simulation top), which CI clones next to this repo.
+# memories) and TopLevel (../TopLevel, the simulation top), which CI clones next to this repo.
 
 toolchain:
   # The RISC-V GCC of insper-riscv/Infra (infra-toolchain image).
@@ -48,7 +48,7 @@ sim:
     - ../Core/I/ExtenderImm.vhd
     - ../Core/I/ExtenderRAM.vhd
     - ../Core/I/StoreManager.vhd
-    - ../RV32IM/src/clk_gen_3way.vhd
+    - ../TopLevel/platforms/internal-mem/rtl/clk_gen_3way.vhd
     - ../Core/common/control_unit.vhd
     - ../Core/common/bubble_mux.vhd
     - ../Core/common/forwarding_unit.vhd
@@ -68,7 +68,7 @@ sim:
     - ../Core/common/reg_EX_MEM.vhd
     - ../Core/common/reg_MEM_WB.vhd
     - ../Core/cores/rv32im_pipeline_core.vhd
-    - ../RV32IM/src/rv32i3stage_core_sim_test.vhd
+    - ../TopLevel/platforms/internal-mem/rtl/rv32i3stage_core_sim_test.vhd
   ghdl_std: "08"
   parameters:
     ROM_FILE: "{hex_path}"
