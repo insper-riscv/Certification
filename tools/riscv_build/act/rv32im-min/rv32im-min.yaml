@@ -4,18 +4,15 @@
 #
 # Sm is declared because this schema version cannot configure MXLEN without it
 # (a fully configured architecture without Sm rejects MXLEN, and a partially
-# configured one crashes inside the udb gem). The core has the machine-mode CSR
-# bank but no trap mechanism, so every Sm trap parameter is set to "nothing
-# traps", and the PMP and HPM counters are absent. test_config.yaml excludes the
-# privileged tests (include_priv_tests: False).
+# configured one crashes inside the udb gem). The core is machine mode only: no
+# PMP, no HPM counters and no interrupt sources.
 ---
 $schema: config_schema.json#
 kind: architecture configuration
 type: fully configured
 name: rv32im-min
 description: >-
-  rv32im_pipeline_core (RV32IM with Zicsr). Machine-mode CSR bank without
-  trap support yet: the Sm trap parameters are declared as "nothing traps".
+  rv32im_pipeline_core (RV32IM with Zicsr), machine mode only.
 implemented_extensions:
   - { name: I, version: "= 2.1" }
   - { name: M, version: "= 2.0" }
@@ -37,30 +34,28 @@ params:
   # implementation).
   M_MODE_ENDIANNESS: little
 
-  # trap/exception behavior — all false: no trap/exception mechanism
-  # exists in the RTL at all (no mtvec, no mcause, no mepc), so
-  # nothing traps on any of these conditions.
-  TRAP_ON_ECALL_FROM_M: false
-  TRAP_ON_EBREAK: false
+  # trap/exception behavior: ecall, ebreak and a CSR that does not exist or cannot be
+  # written trap into mtvec. An unknown opcode stays a NOP (no illegal-instruction trap),
+  # and the reserved SYSTEM encodings that the core rejects are not tested by ACT4.
+  TRAP_ON_ECALL_FROM_M: true
+  TRAP_ON_EBREAK: true
   TRAP_ON_UNIMPLEMENTED_INSTRUCTION: false
   TRAP_ON_RESERVED_INSTRUCTION: false
-  TRAP_ON_UNIMPLEMENTED_CSR: false
+  TRAP_ON_UNIMPLEMENTED_CSR: true
   TRAP_ON_ILLEGAL_WLRL: false
 
-  # MTVAL reporting — mtval doesn't exist, so nothing reports into it.
+  # mtval: the faulting address for misaligned accesses and jump targets, zero otherwise.
   REPORT_VA_IN_MTVAL_ON_BREAKPOINT: false
-  REPORT_VA_IN_MTVAL_ON_LOAD_MISALIGNED: false
-  REPORT_VA_IN_MTVAL_ON_STORE_AMO_MISALIGNED: false
-  REPORT_VA_IN_MTVAL_ON_INSTRUCTION_MISALIGNED: false
+  REPORT_VA_IN_MTVAL_ON_LOAD_MISALIGNED: true
+  REPORT_VA_IN_MTVAL_ON_STORE_AMO_MISALIGNED: true
+  REPORT_VA_IN_MTVAL_ON_INSTRUCTION_MISALIGNED: true
   REPORT_VA_IN_MTVAL_ON_LOAD_ACCESS_FAULT: false
   REPORT_VA_IN_MTVAL_ON_STORE_AMO_ACCESS_FAULT: false
   REPORT_VA_IN_MTVAL_ON_INSTRUCTION_ACCESS_FAULT: false
   REPORT_ENCODING_IN_MTVAL_ON_ILLEGAL_INSTRUCTION: false
   MTVAL_WIDTH: 32
 
-  # Misaligned load/store — set to "unsupported" rather than guessing
-  # this core's real (unverified) misalignment behavior; certify never
-  # selects a Misalign test at I/M scope, so this is unexercised.
+  # Misaligned load/store raise an exception; the hardware does not split them in two accesses.
   MISALIGNED_LDST: false
   MISALIGNED_LDST_EXCEPTION_PRIORITY: low
 
