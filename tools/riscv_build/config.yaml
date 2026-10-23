@@ -70,8 +70,12 @@ sim:
     - ../Core/cores/rv32im_pipeline_core.vhd
     - ../TopLevel/platforms/internal-mem/rtl/rv32i3stage_core_sim_test.vhd
   ghdl_std: "08"
+  # The ACT4 images the harness writes for each ELF: the code of the test also goes to the boot
+  # ROM (the core fetches from it below 0x800), and the data goes to the RAM.
   parameters:
+    BOOT_ROM_FILE: "{boot_hex_path}"
     ROM_FILE: "{hex_path}"
+    RAM_FILE: "{ram_hex_path}"
 
 act:
   vendor_dir: vendor/riscv-arch-test
@@ -79,6 +83,9 @@ act:
   # I/M only: the core has no CSR/trap/privilege support yet. Add
   # extensions (comma-separated) as the RTL grows them.
   extensions: "I,M"
+  # Where the data region of the ELFs starts (the RAM) and the size of the boot ROM.
+  ram_base: 0x400000
+  boot_rom_bytes: 0x800
   # An architectural test can be far larger than the board's FLASH/RAM, and
   # ACT4 never runs on hardware, so the simulation memories are sized
   # generously (link.ld's MEMORY block must match: 4M/2M).
