@@ -143,3 +143,8 @@ params:
       false, false, false, false, false, false, false, false,
       false, false, false, false, false, false, false, false,
     ]
+
+  # Parameters that the UDB version in use requires.
+  NON_STANDARD_EXTENSION_IMPLEMENTED: false
+  WFI_FINITE: false
+  WFI_U_MODE: false
