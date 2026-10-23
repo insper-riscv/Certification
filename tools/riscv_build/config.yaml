@@ -62,6 +62,8 @@ sim:
     - ../Core/M/div.vhd
     - ../Core/M/divu.vhd
     - ../Core/M/multdiv.vhd
+    - ../Core/Zicsr/csr_decode.vhd
+    - ../Core/Zicsr/csr_file.vhd
     - ../Core/common/pc_fetch.vhd
     - ../Core/common/reg_IF_ID.vhd
     - ../Core/common/reg_ID_EX.vhd
@@ -76,13 +78,13 @@ sim:
     BOOT_ROM_FILE: "{boot_hex_path}"
     ROM_FILE: "{hex_path}"
     RAM_FILE: "{ram_hex_path}"
+    HAS_ZICSR: "true"
 
 act:
   vendor_dir: vendor/riscv-arch-test
   target_config: tools/riscv_build/act/rv32im-min/test_config.yaml
-  # I/M only: the core has no CSR/trap/privilege support yet. Add
-  # extensions (comma-separated) as the RTL grows them.
-  extensions: "I,M"
+  # Extensions the core implements (comma-separated); add them as the RTL grows them.
+  extensions: "I,M,Zicsr"
   # Where the data region of the ELFs starts (the RAM) and the size of the boot ROM.
   ram_base: 0x400000
   boot_rom_bytes: 0x800
