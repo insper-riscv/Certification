@@ -6,6 +6,6 @@ ref_model_exe: sail_riscv_sim
 udb_config: rv32im-min.yaml
 linker_script: link.ld
 dut_include_dir: .
-# No CSR/trap/privilege support yet: every ACT4 test that needs a privilege mode is
+# No trap support yet: every ACT4 test that needs a privilege mode is
 # architecturally inapplicable to this core today.
 include_priv_tests: False
