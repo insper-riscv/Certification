@@ -1,15 +1,11 @@
 name: rv32im-min
-# Same riscv-collab toolchain this project's own compile step uses
-# (toolchain.gcc in config.yaml) — objdump_exe omitted on purpose,
-# GHDL sim has nothing to disassemble against; ACT4 skips it cleanly
-# when unset (see README: "if not provided, objdump will be skipped").
 compiler_exe: riscv32-unknown-elf-gcc
-# Spike with this target's memory map (see the script), found on PATH.
-ref_model_exe: spike-rv32im-min
+objdump_exe: riscv32-unknown-elf-objdump
+# The Sail model, with the memory map of link.ld in sail.json.
+ref_model_exe: sail_riscv_sim
 udb_config: rv32im-min.yaml
 linker_script: link.ld
 dut_include_dir: .
-# No CSR/trap/privilege support yet (see rvmodel_macros.h) — every
-# ACT4 test that needs a privilege mode is architecturally
-# inapplicable to this core today.
+# No CSR/trap/privilege support yet: every ACT4 test that needs a privilege mode is
+# architecturally inapplicable to this core today.
 include_priv_tests: False
