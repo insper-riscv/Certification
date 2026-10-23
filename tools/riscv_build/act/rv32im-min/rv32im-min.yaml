@@ -1,55 +1,26 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/riscv/riscv-unified-db/main/spec/schemas/config_schema.json
 #
-# UDB architecture config for rv32im_pipeline_core (RV32IM/src) — the
-# ONLY extensions this core implements today, no CSR/Zicsr, no
-# trap/privilege mode at all (M-mode only, always). Add a Config
-# Change entry to this file's own history as extensions land (A next,
-# most likely — see rvmodel_macros.h's own note on RVMODEL_BOOT).
+# UDB architecture config for rv32im_pipeline_core: RV32IM with Zicsr.
 #
-# BLOCKED-then-worked-around as of ACT4 3.10.0-1245-g9d85ed64 / udb
-# 0.1.16 — a genuinely CSR-less, Sm-less core has no clean path
-# through this schema version (confirmed by actually running
-# `mise exec -- make CONFIG_FILES=...` against each of these, not
-# guessed):
-#
-#   1. `type: fully configured`, no Sm declared: MXLEN can't be set at
-#      all — "Parameter is not defined by this config: 'MXLEN'.
-#      Failing condition(s): `Sm>=0`{false}" — MXLEN is Sm-gated in
-#      this schema version, even though it's also unconditionally
-#      required ("Must set MXLEN for a full config").
-#   2. `type: partially configured` (no Sm): crashes INSIDE the udb
-#      gem itself — "Cannot represent true/false in DIMACS" from
-#      Udb::LogicNode#to_dimacs, during minimal_unsat_subsets — a real
-#      bug in udb 0.1.16's SAT-based constraint solving for a
-#      this-minimal extension set, not something fixable from this
-#      YAML.
-#
-# So: Sm IS declared below, purely to satisfy the schema — NOT because
-# this core implements any of it. Every Sm param is set to its most
-# "nothing is here" legal value (CSR doesn't exist / trap doesn't
-# fire / 0 entries), matching this core's actual RTL (rv32im_pipeline_core
-# has no CSR file, no trap/exception logic, no PMP, no HPM counters —
-# confirmed by reading the RTL, not assumed). None of it is ever
-# exercised: test_config.yaml sets include_priv_tests: False, and
-# act.extensions (config.yaml) stays I,M-only, so no test that could
-# depend on real CSR/trap behavior is ever selected. Revisit for real
-# (not placeholder) values once this core actually gains M-mode CSRs —
-# see the conversation this file was authored in for the full
-# trial-and-error trail against the real UDB validator.
+# Sm is declared because this schema version cannot configure MXLEN without it
+# (a fully configured architecture without Sm rejects MXLEN, and a partially
+# configured one crashes inside the udb gem). The core has the machine-mode CSR
+# bank but no trap mechanism, so every Sm trap parameter is set to "nothing
+# traps", and the PMP and HPM counters are absent. test_config.yaml excludes the
+# privileged tests (include_priv_tests: False).
 ---
 $schema: config_schema.json#
 kind: architecture configuration
 type: fully configured
 name: rv32im-min
 description: >-
-  rv32im_pipeline_core (3-stage pipeline, RV32IM) — no Zicsr, no
-  trap/privilege support. I/M-only ACT4 scope. Sm declared with
-  placeholder "nothing implemented" values only to satisfy udb's
-  schema — see this file's own header comment.
+  rv32im_pipeline_core (RV32IM with Zicsr). Machine-mode CSR bank without
+  trap support yet: the Sm trap parameters are declared as "nothing traps".
 implemented_extensions:
   - { name: I, version: "= 2.1" }
   - { name: M, version: "= 2.0" }
   - { name: Zmmul, version: "= 1.0.0" }
+  - { name: Zicsr, version: "= 2.0" }
   - { name: Sm, version: "= 1.12.0" }
 
 params:
@@ -57,10 +28,9 @@ params:
   MXLEN: 32
   PHYS_ADDR_WIDTH: 32
 
-  # MISA — no misa CSR at all (MISA_CSR_IMPLEMENTED: false), M is
-  # always present and never togglable.
+  # MISA — read-only misa (0x40001100: RV32, I and M), M never togglable.
   MUTABLE_MISA_M: false
-  MISA_CSR_IMPLEMENTED: false
+  MISA_CSR_IMPLEMENTED: true
 
   # endianness — real, not a placeholder: matches this core's actual
   # StoreManager/RAM byte ordering (little-endian, like every RISC-V
@@ -143,6 +113,11 @@ params:
       false, false, false, false, false, false, false, false,
       false, false, false, false, false, false, false, false,
     ]
+
+  # No interrupt sources: the machine-level interrupt pending bits stay zero.
+  MEI_INTR_IMPL: false
+  MSI_INTR_IMPL: false
+  MTI_INTR_IMPL: false
 
   # Parameters that the UDB version in use requires.
   NON_STANDARD_EXTENSION_IMPLEMENTED: false
