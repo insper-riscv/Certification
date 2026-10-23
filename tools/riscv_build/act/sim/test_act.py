@@ -25,9 +25,11 @@ from cocotb.triggers import ClockCycles, RisingEdge
 
 # Must stay in sync with ../rv32im-min/link.ld's `ram (rw)` region and
 # its trailing tohost/fromhost/rv32_act_console layout: ORIGIN(ram) +
-# LENGTH(ram) = 0x00020000 + (0x20000 - 20) = 0x3FFEC.
-TOHOST_ADDR = 0x0003FFEC
-CONSOLE_ADDR = 0x0003FFFC
+# LENGTH(ram) = 0x00400000 + (0x200000 - 20) = 0x5FFFEC. tohost (8 bytes)
+# and fromhost (8 bytes) start there; the console word is 16 bytes later,
+# at 0x5FFFFC.
+TOHOST_ADDR = 0x005FFFEC
+CONSOLE_ADDR = 0x005FFFFC
 TOHOST_PASS = 1
 TIMEOUT_CYCLES = 200_000
 
