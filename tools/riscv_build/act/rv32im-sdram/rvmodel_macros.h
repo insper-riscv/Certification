@@ -55,17 +55,19 @@
 
 ##### TERMINATION #####
 
-# Same tohost HTIF encoding this project's OWN crt0.S already writes
-# on every test's completion (rv32_wait_restart: "1 = pass, 3 = fail
-# ((1 << 1) | 1)") — not a new convention, just reused here.
+# tohost HTIF encoding: 1 = pass, 3 = fail ((1 << 1) | 1). After writing it the test jumps to
+# rv32_wait_restart, the routine of the boot ROM (fixed at 0x100) that parks the core until the
+# host sets the go flag again; a self loop in the ELF would keep the core from ever restarting.
+#define BOOT_ROM_WAIT_RESTART 0x100
+
 #define RVMODEL_HALT_PASS  \
   li x1, 1                ;\
   la t0, tohost           ;\
   write_tohost_pass:      ;\
     sw x1, 0(t0)          ;\
     sw x0, 4(t0)          ;\
-  self_loop_pass:         ;\
-    j self_loop_pass      ;\
+  li t1, BOOT_ROM_WAIT_RESTART ;\
+  jr t1                   ;\
 
 #define RVMODEL_HALT_FAIL \
   li x1, 3                ;\
@@ -73,8 +75,8 @@
   write_tohost_fail:      ;\
     sw x1, 0(t0)          ;\
     sw x0, 4(t0)          ;\
-  self_loop_fail:         ;\
-    j self_loop_fail      ;\
+  li t1, BOOT_ROM_WAIT_RESTART ;\
+  jr t1                   ;\
 
 ##### IO #####
 
