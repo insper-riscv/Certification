@@ -1,0 +1,45 @@
+# Certification
+
+🌐 [Português](README.md) · [English](README.en.md)
+
+Certification of the RISC-V RV32IM core with the official ACT4 suite ([riscv-arch-test](https://github.com/riscv/riscv-arch-test)), run in simulation (cocotb/GHDL). This repository runs the suite against the core and reports the result; it never runs on the board.
+
+## 1. Documentation
+
+- [AUTHORS.en.md](AUTHORS.en.md): authors with commits in the repository, with name and GitHub account.
+- [CONTRIBUTING.en.md](CONTRIBUTING.en.md): mandatory contribution rules, C23 and Python standards, documentation rules, and verification before opening a Pull Request.
+- [CITATION.cff](CITATION.cff): software citation metadata.
+
+## 2. Repository Structure
+
+| Path | Contents |
+| :--- | :--- |
+| `vendor/riscv-arch-test` | Official suite, pinned as a submodule |
+| `tools/riscv_build/act/rv32im-min/` | DUT target: `test_config.yaml`, the UDB YAML, `rvmodel_macros.h`, `link.ld`, and `spike-rv32im-min` (Spike with this target's memory map, used as the reference model) |
+| `tools/riscv_build/act/sim/test_act.py` | cocotb testbench that watches the HTIF `tohost` word |
+| `tools/riscv_build/config.yaml` | `sim:` section (VHDL sources and top level) and `act:` section (suite and extensions) |
+| `tools/Tools` | `riscv-tools` package, whose `certify` command drives the whole flow |
+
+The VHDL comes from sibling repositories cloned side by side: [Core](https://github.com/insper-riscv/Core) (`../Core`, the processor), [Memory](https://github.com/insper-riscv/Memory) (`../Memory`, the memories), and [TopLevel](https://github.com/insper-riscv/TopLevel) (`../TopLevel`, the simulation top).
+
+## 3. Scope
+
+The certification covers the `I` and `M` extensions, listed in `act.extensions` in the configuration.
+
+## 4. Running
+
+```bash
+git clone --recurse-submodules https://github.com/insper-riscv/Certification.git
+git clone https://github.com/insper-riscv/Core.git      # next to it
+git clone https://github.com/insper-riscv/Memory.git    # next to it
+git clone https://github.com/insper-riscv/TopLevel.git  # next to it
+cd Certification
+uv sync
+uv run riscv-tools --config tools/riscv_build/config.yaml certify
+```
+
+The tools of the `infra-toolchain` image (RISC-V GCC, Spike, GHDL) are required, plus `build-essential`, `device-tree-compiler`, and [mise](https://mise.jdx.dev) (Ruby/Bundler for ACT4's UDB). The full flow is in `.github/workflows/certification.yml`.
+
+---
+
+Copyright 2026 Insper. Licensed under the [Apache License, Version 2.0](LICENSE).

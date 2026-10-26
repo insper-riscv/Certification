@@ -1,49 +1,45 @@
 # Certification
 
-ACT4 ([riscv-arch-test](https://github.com/riscv/riscv-arch-test))
-certification of the RV32IM core. One job: run the official suite against
-the core in simulation (cocotb/GHDL) and report the result. It never runs
-on the board.
+🌐 [Português](README.md) · [English](README.en.md)
 
-| Path | What |
+Certificação do núcleo RISC-V RV32IM com a suíte oficial ACT4 ([riscv-arch-test](https://github.com/riscv/riscv-arch-test)), executada em simulação (cocotb/GHDL). Este repositório roda a suíte contra o núcleo e reporta o resultado; nunca executa na placa.
+
+## 1. Documentação
+
+- [AUTHORS.md](AUTHORS.md): autores com commits no repositório, com nome e conta do GitHub.
+- [CONTRIBUTING.md](CONTRIBUTING.md): regras obrigatórias de contribuição, normas C23 e Python, regras de documentação e verificação antes de abrir Pull Request.
+- [CITATION.cff](CITATION.cff): metadados para citação do software.
+
+## 2. Estrutura do Repositório
+
+| Caminho | Conteúdo |
 | :--- | :--- |
-| `vendor/riscv-arch-test` | the official suite, a pinned submodule |
-| `tools/riscv_build/act/rv32im-min/` | the DUT target: `test_config.yaml`, the UDB YAML, `rvmodel_macros.h`, `link.ld`, and `spike-rv32im-min`, Spike with this target's memory map (the reference model) |
-| `tools/riscv_build/act/sim/test_act.py` | the cocotb testbench: watches the HTIF `tohost` word |
-| `tools/riscv_build/config.yaml` | `sim:` (VHDL sources, toplevel) and `act:` (suite, extensions) |
-| `tools/Tools` | `riscv-tools`, whose `certify` command drives all of it |
+| `vendor/riscv-arch-test` | Suíte oficial, em versão fixada como submódulo |
+| `tools/riscv_build/act/rv32im-min/` | Alvo do DUT: `test_config.yaml`, o YAML do UDB, `rvmodel_macros.h`, `link.ld` e `spike-rv32im-min` (Spike com o mapa de memória deste alvo, usado como modelo de referência) |
+| `tools/riscv_build/act/sim/test_act.py` | Testbench cocotb que observa a palavra HTIF `tohost` |
+| `tools/riscv_build/config.yaml` | Seção `sim:` (fontes VHDL e topo) e seção `act:` (suíte e extensões) |
+| `tools/Tools` | Pacote `riscv-tools`, cujo comando `certify` conduz todo o fluxo |
 
-The VHDL comes from sibling checkouts of
-[Core](https://github.com/insper-riscv/Core) (`../Core`, the processor),
-[Memory](https://github.com/insper-riscv/Memory) (`../Memory`, the memories) and
-[TopLevel](https://github.com/insper-riscv/TopLevel) (`../TopLevel`, the simulation top).
+O VHDL vem de repositórios irmãos clonados lado a lado: [Core](https://github.com/insper-riscv/Core) (`../Core`, o processador), [Memory](https://github.com/insper-riscv/Memory) (`../Memory`, as memórias) e [TopLevel](https://github.com/insper-riscv/TopLevel) (`../TopLevel`, o topo de simulação).
 
-## Run
+## 3. Escopo
+
+A certificação cobre as extensões `I` e `M`, listadas em `act.extensions` na configuração.
+
+## 4. Execução
 
 ```bash
 git clone --recurse-submodules https://github.com/insper-riscv/Certification.git
-git clone https://github.com/insper-riscv/Core.git     # next to it
-git clone https://github.com/insper-riscv/Memory.git   # next to it
-git clone https://github.com/insper-riscv/TopLevel.git # next to it
+git clone https://github.com/insper-riscv/Core.git      # ao lado
+git clone https://github.com/insper-riscv/Memory.git    # ao lado
+git clone https://github.com/insper-riscv/TopLevel.git  # ao lado
 cd Certification
 uv sync
 uv run riscv-tools --config tools/riscv_build/config.yaml certify
 ```
 
-Needs the `infra-toolchain` image's tools (RISC-V GCC, Spike, GHDL) plus
-`build-essential`, `device-tree-compiler` and [mise](https://mise.jdx.dev)
-(Ruby/Bundler for ACT4's UDB); CI does exactly this in
-`.github/workflows/certification.yml`.
+São necessárias as ferramentas da imagem `infra-toolchain` (GCC RISC-V, Spike, GHDL), além de `build-essential`, `device-tree-compiler` e [mise](https://mise.jdx.dev) (Ruby/Bundler para o UDB do ACT4). O fluxo completo está em `.github/workflows/certification.yml`.
 
-## Scope and state
+---
 
-I and M only: the core has no CSR/trap/privilege support yet. Extensions
-are added to `act.extensions` as the core grows them.
-
-The build of the ACT4 ELFs currently fails at `rvmodel_macros.h` (macros
-missing for this target). That failure predates this repository (it moved
-here unchanged from `Testes`) and is the first thing to fix here.
-
-## License
-
-Apache License 2.0, see [LICENSE](LICENSE).
+Copyright 2026 Insper. Licenciado sob a [Apache License, Version 2.0](LICENSE).
