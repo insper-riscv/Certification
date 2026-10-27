@@ -38,8 +38,9 @@ jobs:
         # "../Memory/..." (the memories) and "../TopLevel/..." (the
         # simulation top), true once all are cloned as siblings of this checkout.
         run: |
-          rm -rf ../Core ../Memory ../TopLevel
+          rm -rf ../Core ../Common-Components ../Memory ../TopLevel
           git clone --depth 1 https://github.com/insper-riscv/Core.git ../Core
+          git clone --depth 1 https://github.com/insper-riscv/Common-Components.git ../Common-Components
           git clone --depth 1 https://github.com/insper-riscv/Memory.git ../Memory
           git clone --depth 1 https://github.com/insper-riscv/TopLevel.git ../TopLevel
 
