@@ -6,7 +6,7 @@
 #   uv run riscv-tools --config tools/riscv_build/config.sdram.yaml certify
 
 toolchain:
-  # The RISC-V GCC of insper-riscv/Infra (infra-toolchain image).
+  # The RISC-V GCC of insper-riscv/Infra (ci-asm image).
   gcc: riscv32-unknown-elf-gcc
   objcopy: riscv32-unknown-elf-objcopy
 

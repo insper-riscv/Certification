@@ -20,13 +20,13 @@ concurrency:
 
 jobs:
   act4-im:
-    # ACT4 tests run entirely under cocotb/GHDL,
-    # never on the FPGA, on a GitHub-hosted runner, in the same
-    # toolchain image (its Spike is ACT4's ref_model_exe, and curl and git
-    # are there for the mise installer and the checkout).
+    # ACT4 tests run entirely under cocotb/GHDL, never on the FPGA, on a
+    # GitHub-hosted runner, in the ci-elf image: it carries the RISC-V GCC, the Sail
+    # model that is ACT4's reference, and Ruby, Bundler and the UDB gems of the ACT4
+    # commit this repository pins.
     runs-on: ubuntu-26.04
     container:
-      image: ghcr.io/insper-riscv/infra-toolchain:latest
+      image: ghcr.io/insper-riscv/ci-elf:latest
 
     steps:
       - uses: actions/checkout@v7
@@ -43,46 +43,6 @@ jobs:
           git clone --depth 1 https://github.com/insper-riscv/Common-Components.git ../Common-Components
           git clone --depth 1 https://github.com/insper-riscv/Memory.git ../Memory
           git clone --depth 1 https://github.com/insper-riscv/TopLevel.git ../TopLevel
-
-      - name: Put ACT4's reference-model wrapper on PATH
-        # test_config.yaml's ref_model_exe is spike-rv32im-min: Spike with
-        # this target's memory map, which ACT4 cannot pass itself (see
-        # the script), found by name on PATH.
-        run: echo "$GITHUB_WORKSPACE/tools/riscv_build/act/rv32im-min" >> "$GITHUB_PATH"
-
-      - name: Install the host packages ACT4 uses
-        # The toolchain image has only the RISC-V cross compiler: bundler
-        # builds gems such as nkf with the host's cc and make
-        # (build-essential), and ACT4 runs dtc (device-tree-compiler) to
-        # build each test's device tree.
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends build-essential device-tree-compiler
-
-      # mise provisions Ruby+Bundler (and the pinned uv) for ACT4's
-      # own UDB toolchain automatically — see vendor/riscv-arch-test's
-      # own .mise.toml/README.md ("Prerequisites: 2. mise (Tool
-      # Manager)") and Makefile (`ifneq ($(MISE),)` skips its own
-      # Bundle-on-PATH check entirely once mise is present).
-      - name: Install mise (provisions Ruby/Bundler for ACT4's UDB toolchain)
-        run: |
-          curl -fsSL https://mise.jdx.dev/install.sh | sh
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-      - name: mise install (Ruby/Bundler/uv, pinned in vendor/riscv-arch-test/.mise.toml)
-        working-directory: vendor/riscv-arch-test
-        run: |
-          mise trust .mise.toml
-          mise install
-
-      - name: bundle install (UDB gems)
-        # AGENTS.md: "UDB Ruby deps are under framework/src/act/data/
-        # Gemfile*; first ACT/UDB use may run `bundle install`" — run
-        # it explicitly here rather than relying on a Makefile target
-        # to trigger it as a side effect the first time `certify`
-        # calls `make`.
-        working-directory: vendor/riscv-arch-test/framework/src/act/data
-        run: mise exec -- bundle install
 
       - name: Install Python dependencies (riscv-tools, editable from tools/Tools, + its sim extra)
         run: uv sync

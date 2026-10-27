@@ -40,7 +40,7 @@ uv sync
 uv run riscv-tools --config tools/riscv_build/config.yaml certify
 ```
 
-The tools of the `infra-toolchain` image (RISC-V GCC, Spike, GHDL) are required, plus `build-essential`, `device-tree-compiler`, and [mise](https://mise.jdx.dev) (Ruby/Bundler for ACT4's UDB). The full flow is in `.github/workflows/certification.yml`.
+The tools come from the `ci-elf` image of the [Infra](https://github.com/insper-riscv/Infra) repository: RISC-V GCC, Spike, Sail, GHDL, uv, and Ruby with Bundler and the gems of ACT4's UDB. The full flow is in `.github/workflows/certification.yml`.
 
 ---
 
