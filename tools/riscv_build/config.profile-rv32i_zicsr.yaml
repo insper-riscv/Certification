@@ -9,7 +9,7 @@
 # memories) and TopLevel (../TopLevel, the simulation top), which CI clones next to this repo.
 
 toolchain:
-  # The RISC-V GCC of insper-riscv/Infra (ci-asm image).
+  # The RISC-V GCC of insper-riscv/Infra (ci-elf image).
   gcc: riscv32-unknown-elf-gcc
   objcopy: riscv32-unknown-elf-objcopy
 

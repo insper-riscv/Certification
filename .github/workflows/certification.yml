@@ -21,12 +21,12 @@ concurrency:
 jobs:
   act4-im:
     # ACT4 tests run entirely under cocotb/GHDL, never on the FPGA, on a
-    # GitHub-hosted runner, in the ci-elf image: it carries the RISC-V GCC, the Sail
+    # GitHub-hosted runner, in the ci-act4 image: it carries the RISC-V GCC, the Sail
     # model that is ACT4's reference, and Ruby, Bundler and the UDB gems of the ACT4
     # commit this repository pins.
     runs-on: ubuntu-26.04
     container:
-      image: ghcr.io/insper-riscv/ci-elf:latest
+      image: ghcr.io/insper-riscv/ci-act4:latest
 
     steps:
       - uses: actions/checkout@v7
