@@ -16,15 +16,17 @@ Certificação do núcleo RISC-V RV32IM com a suíte oficial ACT4 ([riscv-arch-t
 | :--- | :--- |
 | `vendor/riscv-arch-test` | Suíte oficial, em versão fixada como submódulo |
 | `tools/riscv_build/act/rv32im-min/` | Alvo do DUT: `test_config.yaml`, o YAML do UDB, `rvmodel_macros.h`, `link.ld` e `spike-rv32im-min` (Spike com o mapa de memória deste alvo, usado como modelo de referência) |
+| `tools/riscv_build/act/rv32im-sdram/` | Alvo com o código e os dados na SDRAM, para as extensões que dependem dela (Zifencei) |
+| `tools/riscv_build/act/profile-*/` | Um alvo por perfil do núcleo (UDB, configuração do Sail e `test_config.yaml`), gerado por `tools/riscv_build/gen_profiles.py` |
 | `tools/riscv_build/act/sim/test_act.py` | Testbench cocotb que observa a palavra HTIF `tohost` |
-| `tools/riscv_build/config.yaml` | Seção `sim:` (fontes VHDL e topo) e seção `act:` (suíte e extensões) |
+| `tools/riscv_build/config.yaml` | Seção `sim:` (fontes VHDL e topo) e seção `act:` (suíte e extensões); `config.sdram.yaml` é a variante com a SDRAM e `config.profile-*.yaml`, a de cada perfil |
 | `tools/Tools` | Pacote `riscv-tools`, cujo comando `certify` conduz todo o fluxo |
 
 O VHDL vem de repositórios irmãos clonados lado a lado: [Core](https://github.com/insper-riscv/Core) (`../Core`, o processador), [Memory](https://github.com/insper-riscv/Memory) (`../Memory`, as memórias) e [TopLevel](https://github.com/insper-riscv/TopLevel) (`../TopLevel`, o topo de simulação).
 
 ## 3. Escopo
 
-A certificação cobre as extensões `I` e `M`, listadas em `act.extensions` na configuração.
+A certificação cobre as extensões `I`, `M`, `Zmmul`, `Zicsr` e `Zifencei`, listadas em `act.extensions` na configuração. Cada uma das 12 combinações dessas extensões sobre a base `I` é um perfil do núcleo, com seu próprio alvo; a lista está em `tools/riscv_build/gen_profiles.py`, e um perfil roda com `uv run riscv-tools --config tools/riscv_build/config.profile-<nome>.yaml certify`. Os perfis com `Zifencei` usam a plataforma com SDRAM.
 
 ## 4. Execução
 
