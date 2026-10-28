@@ -1,4 +1,6 @@
-"""Generate the ACT4 targets of the 12 RV32 profiles (I plus any of M, Zmmul, Zicsr and Zifencei).
+"""Generate the ACT4 targets of the RV32 profiles that run misaligned accesses (Zicclsm).
+
+The profiles are I plus any valid combination of M, Zmmul, Zicsr and Zifencei.
 
 Usage, from the root of the Certification repository:
 
@@ -48,6 +50,9 @@ for name, ext in VARIANTS:
     lst += ['  - { name: Zicsr, version: "= 2.0" }', '  - { name: Sm, version: "= 1.12.0" }']
     if "Zifencei" in ext:
         lst += ['  - { name: Zifencei, version: "= 2.0" }']
+    # Every profile runs misaligned loads and stores in the RAM and the SDRAM (has_zicclsm defaults to true).
+    lst += ['  - { name: Zicclsm, version: "= 1.0.0" }']
+    y = y.replace("MISALIGNED_LDST: false", "MISALIGNED_LDST: true\n  MISALIGNED_MAX_ATOMICITY_GRANULE_SIZE: 4\n  MISALIGNED_SPLIT_STRATEGY: sequential_bytes")
     y = re.sub(r"implemented_extensions:\n(?:  - .*\n)+", "implemented_extensions:\n" + "\n".join(lst) + "\n", y)
     if "M" not in ext:
         y = re.sub(r"  # MISA.*\n  MUTABLE_MISA_M: false\n", "  # MISA\n", y)
@@ -56,8 +61,14 @@ for name, ext in VARIANTS:
     # Sail
     sj = json.loads((dst / "sail.json").read_text())
     flags = {"M": "M" in ext, "Zmmul": "M" in ext or "Zmmul" in ext, "Zicsr": "Zicsr" in ext, "Zifencei": "Zifencei" in ext}
+    flags["Zicclsm"] = True
     for k, v in flags.items():
         sj["extensions"].setdefault(k, {})["supported"] = v
+    # The main memory (RAM and SDRAM) runs a misaligned access; the flash and the peripherals still raise it.
+    sj["memory"]["misaligned"]["exceptions"]["load_store"] = {"None": None}
+    for region in sj["memory"]["regions"]:
+        if region["attributes"]["mem_type"] == "MainMemory":
+            region["attributes"]["misaligned_exceptions"]["load_store"] = {"None": None}
     (dst / "sail.json").write_text(json.dumps(sj, indent=2))
 
     # test_config
@@ -73,7 +84,7 @@ for name, ext in VARIANTS:
     c = cfg_src.read_text()
     c = re.sub(r"target_config: .*", f"target_config: tools/riscv_build/act/{tgt}/test_config.yaml", c)
     exts = ["I"] + (["M"] if "M" in ext else []) + (["Zmmul"] if "Zmmul" in ext else []) + \
-           (["Zicsr"] if "Zicsr" in ext else []) + (["Zifencei"] if "Zifencei" in ext else [])
+           (["Zicsr"] if "Zicsr" in ext else []) + (["Zifencei"] if "Zifencei" in ext else []) + ["Zicclsm"]
     c = re.sub(r'extensions: ".*"', f'extensions: "{",".join(exts)}"', c)
     c = re.sub(r'(\n    HAS_ZICSR: )".*"', lambda m: f'{m.group(1)}"{str("Zicsr" in ext).lower()}"\n    HAS_M: "{str("M" in ext).lower()}"\n    HAS_ZMMUL: "{str("Zmmul" in ext).lower()}"', c)
     if sdram:

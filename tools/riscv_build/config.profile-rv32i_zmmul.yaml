@@ -55,6 +55,7 @@ sim:
     - ../Core/I/extender_imm.vhd
     - ../Core/I/extender_ram.vhd
     - ../Core/I/store_manager.vhd
+    - ../Core/I/misaligned_unit.vhd
     - ../Core/common/control_unit.vhd
     - ../Core/common/bubble_mux.vhd
     - ../Core/common/forwarding_unit.vhd
@@ -98,7 +99,7 @@ act:
   vendor_dir: vendor/riscv-arch-test
   target_config: tools/riscv_build/act/profile-rv32i_zmmul/test_config.yaml
   # Extensions the core implements (comma-separated); add them as the RTL grows them.
-  extensions: "I,Zmmul"
+  extensions: "I,Zmmul,Zicclsm"
   # Where the data region of the ELFs starts (the RAM) and the size of the boot ROM.
   ram_base: 0x400000
   boot_rom_bytes: 0x800

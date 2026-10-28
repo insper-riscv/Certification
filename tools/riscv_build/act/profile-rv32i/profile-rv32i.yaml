@@ -17,6 +17,7 @@ implemented_extensions:
   - { name: I, version: "= 2.1" }
   - { name: Zicsr, version: "= 2.0" }
   - { name: Sm, version: "= 1.12.0" }
+  - { name: Zicclsm, version: "= 1.0.0" }
 
 params:
   # XLEN
@@ -53,7 +54,9 @@ params:
   MTVAL_WIDTH: 32
 
   # Misaligned load/store raise an exception; the hardware does not split them in two accesses.
-  MISALIGNED_LDST: false
+  MISALIGNED_LDST: true
+  MISALIGNED_MAX_ATOMICITY_GRANULE_SIZE: 4
+  MISALIGNED_SPLIT_STRATEGY: sequential_bytes
   MISALIGNED_LDST_EXCEPTION_PRIORITY: low
 
   # CSR / implementation IDs — marchid/mimpid/mconfigptr CSRs don't

@@ -50,6 +50,7 @@ sim:
     - ../Core/I/extender_imm.vhd
     - ../Core/I/extender_ram.vhd
     - ../Core/I/store_manager.vhd
+    - ../Core/I/misaligned_unit.vhd
     - ../Core/common/control_unit.vhd
     - ../Core/common/bubble_mux.vhd
     - ../Core/common/forwarding_unit.vhd
@@ -103,7 +104,7 @@ sim:
 act:
   vendor_dir: vendor/riscv-arch-test
   target_config: tools/riscv_build/act/profile-rv32i_zicsr_zifencei_zmmul/test_config.yaml
-  extensions: "I,Zmmul,Zicsr,Zifencei"
+  extensions: "I,Zmmul,Zicsr,Zifencei,Zicclsm"
   jobs: 0
   # Where the SDRAM starts: the ELF is one image from here, and the boot ROM jumps here.
   sdram_base: 0x40000000
