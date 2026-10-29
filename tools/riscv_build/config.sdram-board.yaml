@@ -16,3 +16,5 @@ act:
   sdram_region_bytes: 0x100000
   # Seconds to wait for tohost: a test needs well under a second on the board
   board_timeout_s: 30
+  # The display shows AC on HEX5 and HEX4 and the number of the ELF, in decimal, on HEX3 to HEX0
+  board_display: true
