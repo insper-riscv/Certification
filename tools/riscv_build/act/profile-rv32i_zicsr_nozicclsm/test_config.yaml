@@ -1,0 +1,11 @@
+name: profile-rv32i_zicsr_nozicclsm
+compiler_exe: riscv32-unknown-elf-gcc
+objdump_exe: riscv32-unknown-elf-objdump
+# The Sail model, with the memory map of link.ld in sail.json.
+ref_model_exe: sail_riscv_sim
+udb_config: profile-rv32i_zicsr_nozicclsm.yaml
+linker_script: link.ld
+dut_include_dir: .
+# Privileged tests are selected by the extensions the UDB declares; the core has
+# machine mode only.
+include_priv_tests: True
