@@ -95,6 +95,8 @@ sim:
     ROM_FILE: "{hex_path}"
     RAM_FILE: "{ram_hex_path}"
     HAS_ZICSR: "false"
+    HAS_ZICCLSM: "false"
+    HAS_ZICNTR: "false"
     HAS_M: "false"
     HAS_ZMMUL: "true"
 
@@ -102,7 +104,7 @@ act:
   vendor_dir: vendor/riscv-arch-test
   target_config: tools/riscv_build/act/profile-rv32i_zmmul/test_config.yaml
   # Extensions the core implements (comma-separated); add them as the RTL grows them.
-  extensions: "I,Zmmul,Zicclsm"
+  extensions: "I,Zmmul"
   # Where the data region of the ELFs starts (the RAM) and the size of the boot ROM.
   ram_base: 0x400000
   boot_rom_bytes: 0x800

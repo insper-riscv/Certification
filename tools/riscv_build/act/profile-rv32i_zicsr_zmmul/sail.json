@@ -123,7 +123,7 @@
     "misaligned": {
       "exceptions": {
         "load_store": {
-          "None": null
+          "Some": "AlignmentException"
         },
         "vector": {
           "None": null
@@ -164,7 +164,7 @@
           "write_idempotent": true,
           "misaligned_exceptions": {
             "load_store": {
-              "None": null
+              "Some": "AlignmentException"
             },
             "vector": {
               "None": null
@@ -408,7 +408,7 @@
       "supported": false
     },
     "Zicclsm": {
-      "supported": true
+      "supported": false
     },
     "Ziccrse": {
       "supported": false

@@ -101,6 +101,8 @@ sim:
     ROM_FILE: "{hex_path}"
     SDRAM_FILE: "{sdram_hex_path}"
     HAS_ZICSR: "false"
+    HAS_ZICCLSM: "false"
+    HAS_ZICNTR: "false"
     HAS_M: "false"
     HAS_ZMMUL: "true"
     HAS_ZIFENCEI: "true"
@@ -108,7 +110,7 @@ sim:
 act:
   vendor_dir: vendor/riscv-arch-test
   target_config: tools/riscv_build/act/profile-rv32i_zifencei_zmmul/test_config.yaml
-  extensions: "I,Zmmul,Zifencei,Zicclsm"
+  extensions: "I,Zmmul,Zifencei"
   jobs: 0
   # Where the SDRAM starts: the ELF is one image from here, and the boot ROM jumps here.
   sdram_base: 0x40000000
