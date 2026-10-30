@@ -40,7 +40,7 @@ uv sync
 uv run riscv-tools --config tools/riscv_build/config.yaml certify
 ```
 
-The tools come from the `ci-act4` image of the [Infra](https://github.com/insper-riscv/Infra) repository: RISC-V GCC, Spike, Sail, GHDL, uv, and Ruby with Bundler and the gems of ACT4's UDB. The full flow is in `.github/workflows/certification.yml`.
+The tools come from the `ci-act4` image of the [Infra](https://github.com/insper-riscv/Infra) repository: RISC-V GCC, Spike, Sail, GHDL, uv, and Ruby with Bundler and the gems of ACT4's UDB. The full flow is in `.github/workflows/certification.yml`. The run of every profile, with a separate runner per profile, is in `.github/workflows/certification-profiles.yml`; it reads the `tools/riscv_build/config.profile-<name>.yaml` files and, on a manual dispatch, takes the branch of the sibling repositories and a regular expression on the profile name.
 
 ---
 

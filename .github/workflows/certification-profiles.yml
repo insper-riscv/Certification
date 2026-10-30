@@ -1,0 +1,92 @@
+name: certification (ACT4, all profiles)
+
+# Runs the ACT4 certification, in simulation, of every profile of the core: one job, and so one
+# separate runner, per profile. The profiles are the tools/riscv_build/config.profile-<name>.yaml
+# files that gen_profiles.py writes from Core/profiles/matrix.yaml, so a new profile gets its runner
+# as soon as its configuration is committed. It runs only on demand (each profile takes about 15 minutes
+# and the base-platform ones need a runner with about 15 GiB of RAM).
+on:
+  workflow_dispatch:
+    inputs:
+      sibling_ref:
+        description: "Branch or tag of Core, Common-Components, Memory and TopLevel (the VHDL sources)"
+        required: false
+        default: "main"
+      only:
+        description: "Regular expression on the profile name; empty runs every profile"
+        required: false
+        default: ""
+
+concurrency:
+  group: certification-profiles-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  list:
+    # One entry per committed profile configuration; the matrix of the next job is built from it.
+    runs-on: ubuntu-26.04
+    outputs:
+      profiles: ${{ steps.names.outputs.profiles }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: List the profiles
+        id: names
+        env:
+          ONLY: ${{ inputs.only }}
+        run: |
+          names=$(ls tools/riscv_build/config.profile-*.yaml \
+            | sed -E 's#.*/config\.profile-(.*)\.yaml#\1#' \
+            | grep -E "${ONLY:-.}" \
+            | sort)
+          test -n "$names" || { echo "no profile matches '${ONLY}'"; exit 1; }
+          echo "profiles=$(echo "$names" | jq -R -s -c 'split("\n") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"
+          echo "$names" | wc -l | xargs echo "profiles:"
+
+  act4:
+    needs: list
+    # ACT4 tests run entirely under cocotb/GHDL, never on the FPGA, in the ci-act4 image: it carries
+    # the RISC-V GCC, the Sail model that is ACT4's reference, and Ruby, Bundler and the UDB gems of
+    # the ACT4 commit this repository pins. A profile of the base platform simulates large memories
+    # and needs about 15 GiB of RAM, so it must not share a runner with another one.
+    name: ${{ matrix.profile }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 120
+    container:
+      image: ghcr.io/insper-riscv/ci-act4:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: ${{ fromJSON(needs.list.outputs.profiles) }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Checkout Core, Common-Components, Memory and TopLevel (the VHDL sources)
+        # The configurations list "../Core/...", "../Common-Components/...", "../Memory/..." and
+        # "../TopLevel/..." sources, true once all are cloned as siblings of this checkout.
+        env:
+          SIBLING_REF: ${{ inputs.sibling_ref || 'main' }}
+        run: |
+          rm -rf ../Core ../Common-Components ../Memory ../TopLevel
+          for repo in Core Common-Components Memory TopLevel; do
+            git clone --depth 1 --branch "$SIBLING_REF" "https://github.com/insper-riscv/$repo.git" "../$repo"
+          done
+
+      - name: Install Python dependencies (riscv-tools, editable from tools/Tools, + its sim extra)
+        run: uv sync
+
+      - name: Run the ACT4 certification of the profile (build + cocotb/GHDL)
+        run: uv run riscv-tools --config tools/riscv_build/config.profile-${{ matrix.profile }}.yaml certify
+
+      - name: Upload the log and the waveforms
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: act4-${{ matrix.profile }}
+          path: |
+            logs/certification/latest.log
+            **/*.ghw
+          if-no-files-found: ignore
