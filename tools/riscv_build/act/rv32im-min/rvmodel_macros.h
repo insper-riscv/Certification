@@ -36,56 +36,21 @@
 
 ##### STARTUP #####
 
-# RVMODEL_BOOT: no M-mode/CSRs implemented (see test_config.yaml's
-# include_priv_tests: False), so RVMODEL_BOOT_TO_MMODE stays
-# undefined below (bypasses tests/env/rvtest_setup.h's CSR-writing
-# default boot entirely — see rvtest_setup.h: #ifdef
-# RVMODEL_BOOT_TO_MMODE / #else #ifdef STANDARD_SM_SUPPORTED, neither
-# defined here). RVMODEL_BOOT itself is this core's ONLY boot-time
-# hook, so it does everything this project's own crt0.S normally does
-# before a test can rely on .data/.bss/the stack being valid:
-#   1. gp, same .option norelax idiom as crt0.S (a `la` to a symbol
-#      within +/-0x800 of gp gets relaxed to a single gp-relative
-#      load — with gp still zero at that point, that reads through a
-#      garbage address instead of the real one).
-#   2. sp — nothing upstream in rvtest_setup.h sets it (confirmed: no
-#      la/li sp anywhere in tests/env/rvtest_setup.h, only sp-relative
-#      addi inside the trap handler, which assumes sp is already
-#      valid).
-#   3. .rodata+.data ROM->RAM copy (_romcopy_load/_romcopy_start/
-#      _romcopy_end, see link.ld) — ROM has no write path on real
-#      hardware, so these can't already be sitting at their run
-#      address in RAM the way a unified-memory target's loader would
-#      put them.
-#   4. .bss zero (_bss_start/_bss_end, see link.ld).
+# RVMODEL_BOOT: the core has no CSRs and no privilege modes, so RVMODEL_BOOT_TO_MMODE stays
+# undefined and RVMODEL_BOOT is the only boot-time hook. The simulation loads the data of the
+# ELF straight into the RAM, so the boot only sets the registers a test relies on:
+#   1. gp, with `.option norelax`: a `la` of a symbol within +/-0x800 of gp would otherwise be
+#      relaxed into a gp-relative access while gp is still zero.
+#   2. sp, at the top of the stack that the linker script reserves.
 #define RVMODEL_BOOT                                    \
   .option push                                          ;\
   .option norelax                                       ;\
 1:auipc gp, %pcrel_hi(__global_pointer$)                 ;\
   addi  gp, gp, %pcrel_lo(1b)                            ;\
-  .option pop                                            ;\
-  la    sp, _stack_top                                   ;\
-  la    t0, _romcopy_load                                ;\
-  la    t1, _romcopy_start                               ;\
-  la    t2, _romcopy_end                                 ;\
-rvmodel_boot_romcopy:                                    ;\
-  bge   t1, t2, rvmodel_boot_romcopy_done                ;\
-  lw    t3, 0(t0)                                        ;\
-  sw    t3, 0(t1)                                        ;\
-  addi  t0, t0, 4                                        ;\
-  addi  t1, t1, 4                                        ;\
-  j     rvmodel_boot_romcopy                              ;\
-rvmodel_boot_romcopy_done:                                ;\
-  la    t1, _bss_start                                   ;\
-  la    t2, _bss_end                                     ;\
-rvmodel_boot_bsszero:                                     ;\
-  bge   t1, t2, rvmodel_boot_bsszero_done                ;\
-  sw    x0, 0(t1)                                        ;\
-  addi  t1, t1, 4                                        ;\
-  j     rvmodel_boot_bsszero                              ;\
-rvmodel_boot_bsszero_done:
+  .option pop                                           ;\
+  la    sp, __stack_top
 
-// Left undefined on purpose — see the RVMODEL_BOOT comment above.
+// Left undefined on purpose, see the comment above.
 //#define RVMODEL_BOOT_TO_MMODE
 
 ##### TERMINATION #####

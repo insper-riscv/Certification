@@ -1,0 +1,20 @@
+# The ACT4 ELFs of the SDRAM target on the board (DE0-CV): the platform of the SDRAM of
+# TopLevel supplies the memory map, the JTAG device and the SDRAM debug port, and this file
+# adds the ACT4 side. The board must be programmed with that platform.
+#
+#   uv run riscv-tools --config tools/riscv_build/config.sdram-board.yaml certify-board --skip-build
+extends: ../../../TopLevel/platforms/sdram/config.yaml
+
+act:
+  vendor_dir: vendor/riscv-arch-test
+  target_config: tools/riscv_build/act/rv32im-sdram/test_config.yaml
+  extensions: "I,M,Zicsr,Zifencei"
+  jobs: 0
+  # Where the SDRAM starts, and how much of it an ELF may use (link.ld: 1 MB); the host
+  # zeroes that region before it loads each ELF.
+  sdram_base: 0x40000000
+  sdram_region_bytes: 0x100000
+  # Seconds to wait for tohost: a test needs well under a second on the board
+  board_timeout_s: 30
+  # The display shows AC on HEX5 and HEX4 and the number of the ELF, in decimal, on HEX3 to HEX0
+  board_display: true
