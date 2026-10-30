@@ -52,6 +52,8 @@ for name, ext in VARIANTS:
     lst += ['  - { name: Zicsr, version: "= 2.0" }', '  - { name: Sm, version: "= 1.12.0" }']
     if "Zicntr" in ext:
         lst += ['  - { name: Zicntr, version: "= 2.0" }']
+        # The time CSR exists: the core counts it itself, from a divider of its clock.
+        y = y.replace("  MCOUNTINHIBIT_IMPLEMENTED: false", "  MCOUNTINHIBIT_IMPLEMENTED: false\n  TIME_CSR_IMPLEMENTED: true")
     if "Zifencei" in ext:
         lst += ['  - { name: Zifencei, version: "= 2.0" }']
     if "Zicclsm" in ext:

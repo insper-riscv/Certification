@@ -97,6 +97,7 @@ params:
   # No HPM counters, no mcountinhibit/mcounteren CSRs — every index
   # false (32 HPM counter slots, indices 0..31).
   MCOUNTINHIBIT_IMPLEMENTED: false
+  TIME_CSR_IMPLEMENTED: true
   HPM_COUNTER_EN: [
       false, false, false, false, false, false, false, false,
       false, false, false, false, false, false, false, false,
