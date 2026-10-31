@@ -11,6 +11,10 @@ act:
   target_config: tools/riscv_build/act/flash-rv32i_zicclsm_zicntr_zifencei/test_config.yaml
   extensions: "I,Zicsr,Zicntr,Zifencei,Zicclsm"
   jobs: 0
+  # tests that rewrite their own code run from the variant, with the body in the SDRAM
+  ram_tests: [Zifencei-fence.i-00]
+  ram_target_config: tools/riscv_build/act/flash-ram-rv32i_zicclsm_zicntr_zifencei/test_config.yaml
+  ram_extensions: "Zifencei"
   flash_base: 0x20000000
   # the words of the FLASH storage in the FPGA: an ELF whose code is larger is reported, not run
   flash_words: 33792

@@ -111,4 +111,17 @@ act:
         src_cfg = src_cfg.replace(f"act/{tgt}/", f"act/{rtgt}/")
         src_cfg = re.sub(r'extensions: ".*"', 'extensions: "Zifencei"', src_cfg)
         (rb / f"{kind.replace('flash-', 'flash-ram-')}{name}.yaml").write_text(src_cfg)
+
+    # The profile's own configs take that test from the variant, so one run reports every test.
+    for kind in ("config.flash-", "config.flash-board-"):
+        main_cfg = rb / f"{kind}{name}.yaml"
+        main_cfg.write_text(main_cfg.read_text().replace(
+            "  jobs: 0\n",
+            "  jobs: 0\n"
+            "  # tests that rewrite their own code run from the variant, with the body in the SDRAM\n"
+            "  ram_tests: [Zifencei-fence.i-00]\n"
+            f"  ram_target_config: tools/riscv_build/act/{rtgt}/test_config.yaml\n"
+            '  ram_extensions: "Zifencei"\n',
+            1,
+        ))
     print(name, "->", tgt)

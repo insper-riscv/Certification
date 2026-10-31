@@ -123,6 +123,10 @@ act:
   target_config: tools/riscv_build/act/flash-rv32i_zicclsm_zihpm_zifencei_zmmul/test_config.yaml
   extensions: "I,Zmmul,Zicsr,Zihpm,Zifencei,Zicclsm"
   jobs: 0
+  # tests that rewrite their own code run from the variant, with the body in the SDRAM
+  ram_tests: [Zifencei-fence.i-00]
+  ram_target_config: tools/riscv_build/act/flash-ram-rv32i_zicclsm_zihpm_zifencei_zmmul/test_config.yaml
+  ram_extensions: "Zifencei"
   # The code is in the FLASH, behind the caches, and the data in the SDRAM; the boot ROM jumps to the FLASH.
   flash_base: 0x20000000
   sdram_base: 0x40000000
