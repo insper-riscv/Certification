@@ -94,6 +94,12 @@ sim:
     - ../Memory/external/bus/hex_to_seg7.vhd
     - ../Memory/external/bus/seg_display.vhd
     - ../Memory/external/bus/ext_interconnect.vhd
+    - ../Peripherals/UART/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd
+    - ../Peripherals/UART/vendor/opencores_uart2bus/baudGen.vhd
+    - ../Peripherals/UART/vendor/opencores_uart2bus/uartRx.vhd
+    - ../Peripherals/UART/vendor/opencores_uart2bus/uartTx.vhd
+    - ../Peripherals/UART/vendor/opencores_uart2bus/uartTop.vhd
+    - ../Peripherals/UART/uart.vhd
     - ../TopLevel/platforms/internal-mem/rtl/clk_gen_3way.vhd
     - ../TopLevel/platforms/sdram/rtl/rv32im_sdram_sim_test.vhd
   parameters:

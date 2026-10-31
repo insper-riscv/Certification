@@ -85,6 +85,12 @@ sim:
     - ../Core/core/core.vhd
     - ../Memory/sim/ram_simulation.vhd
     - ../Memory/sim/rom_simulation.vhd
+    - ../Peripherals/UART/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd
+    - ../Peripherals/UART/vendor/opencores_uart2bus/baudGen.vhd
+    - ../Peripherals/UART/vendor/opencores_uart2bus/uartRx.vhd
+    - ../Peripherals/UART/vendor/opencores_uart2bus/uartTx.vhd
+    - ../Peripherals/UART/vendor/opencores_uart2bus/uartTop.vhd
+    - ../Peripherals/UART/uart.vhd
     - ../TopLevel/platforms/internal-mem/rtl/clk_gen_3way.vhd
     - ../TopLevel/platforms/internal-mem/rtl/rv32i3stage_core_sim_test.vhd
   ghdl_std: "08"

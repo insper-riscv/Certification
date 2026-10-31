@@ -64,14 +64,14 @@ jobs:
         with:
           submodules: true
 
-      - name: Checkout Core, Common-Components, Memory and TopLevel (the VHDL sources)
-        # The configurations list "../Core/...", "../Common-Components/...", "../Memory/..." and
+      - name: Checkout Core, Common-Components, Memory, Peripherals and TopLevel (the VHDL sources)
+        # The configurations list "../Core/...", "../Common-Components/...", "../Memory/...", "../Peripherals/..." and
         # "../TopLevel/..." sources, true once all are cloned as siblings of this checkout.
         env:
           SIBLING_REF: ${{ inputs.sibling_ref || 'main' }}
         run: |
-          rm -rf ../Core ../Common-Components ../Memory ../TopLevel
-          for repo in Core Common-Components Memory TopLevel; do
+          rm -rf ../Core ../Common-Components ../Memory ../Peripherals ../TopLevel
+          for repo in Core Common-Components Memory Peripherals TopLevel; do
             git clone --depth 1 --branch "$SIBLING_REF" "https://github.com/insper-riscv/$repo.git" "../$repo"
           done
 
