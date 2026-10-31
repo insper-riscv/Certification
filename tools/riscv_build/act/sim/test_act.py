@@ -3,16 +3,14 @@
 Same idea as tools/riscv_build/sim/test_c_program.py — watches the RAM
 write bus for a specific address instead of reading rv32im_pipeline_core's
 internal state directly (this GHDL install's VPI can't see array-of-vector
-signals, see that module's own docstring) — but ACT4 tests don't know
-about this project's PASS/FAIL mailbox convention at all. They use the
-HTIF tohost/fromhost convention instead (RVMODEL_HALT_PASS/FAIL, see
-../rv32im-min/rvmodel_macros.h), and print an RVCP-SUMMARY line through
-a "console" word (RVMODEL_IO_WRITE_STR) that link.ld places right after
+signals, see that module's own docstring). The project's own tests and the
+ACT4 tests use the same HTIF tohost/fromhost convention
+(RVMODEL_HALT_PASS/FAIL, see ../rv32im-min/rvmodel_macros.h). ACT4 tests also print
+an RVCP-SUMMARY line through a "console" word (RVMODEL_IO_WRITE_STR) that link.ld places right after
 tohost/fromhost — both watched here the same way.
 
-Unlike test_c_program.py's MAILBOX_PASS/FAIL (1/2), tohost's PASS/FAIL
-encoding is HTIF's own: odd values are "done", 1 = pass, anything else
-odd = fail (RVMODEL_HALT_FAIL always writes exactly 3, but this checks
+tohost's PASS/FAIL encoding is HTIF's: odd values are "done", 1 = pass,
+anything else odd = fail (RVMODEL_HALT_FAIL always writes exactly 3, but this checks
 oddness/value-1 rather than hardcoding 3 alone, matching how Spike
 itself treats tohost).
 """

@@ -21,7 +21,7 @@ isa:
 # Only the fields `certify` and the defaults need; ACT4 brings its own
 # linker script (act/rv32im-min/link.ld), memory map and halt/print macros.
 memory:
-  mailbox_addr: 0x0002FFFC
+  tohost_addr: 0x0002FFE8
 
 paths:
   build_dir: build
