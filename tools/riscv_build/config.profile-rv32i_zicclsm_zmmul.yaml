@@ -103,6 +103,7 @@ sim:
     RAM_FILE: "{ram_hex_path}"
     HAS_ZICSR: "false"
     HAS_ZICNTR: "false"
+    HAS_ZIHPM: "false"
     HAS_M: "false"
     HAS_ZMMUL: "true"
 

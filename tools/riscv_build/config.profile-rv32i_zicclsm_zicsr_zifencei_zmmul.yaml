@@ -109,6 +109,7 @@ sim:
     SDRAM_FILE: "{sdram_hex_path}"
     HAS_ZICSR: "true"
     HAS_ZICNTR: "false"
+    HAS_ZIHPM: "false"
     HAS_M: "false"
     HAS_ZMMUL: "true"
     HAS_ZIFENCEI: "true"

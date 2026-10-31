@@ -7,10 +7,10 @@
     "hpmcounter_width_bits": 64,
     "hpmevent_width_bits": 32,
     "mcountinhibit": {
-      "supported": false,
+      "supported": true,
       "writable_bits": {
         "len": 32,
-        "value": "0x0"
+        "value": "0x5"
       }
     },
     "writable_fiom": true,

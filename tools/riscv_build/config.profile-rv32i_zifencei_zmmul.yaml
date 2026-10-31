@@ -110,6 +110,7 @@ sim:
     HAS_ZICSR: "false"
     HAS_ZICCLSM: "false"
     HAS_ZICNTR: "false"
+    HAS_ZIHPM: "false"
     HAS_M: "false"
     HAS_ZMMUL: "true"
     HAS_ZIFENCEI: "true"
