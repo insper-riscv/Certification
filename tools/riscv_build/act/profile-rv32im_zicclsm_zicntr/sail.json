@@ -7,10 +7,10 @@
     "hpmcounter_width_bits": 64,
     "hpmevent_width_bits": 32,
     "mcountinhibit": {
-      "supported": false,
+      "supported": true,
       "writable_bits": {
         "len": 32,
-        "value": "0x0"
+        "value": "0x5"
       }
     },
     "writable_fiom": true,
@@ -68,6 +68,10 @@
       "delegatable_bits": {
         "len": "xlen",
         "value": "0x0"
+      },
+      "read_only_one_bits": {
+        "len": "xlen",
+        "value": "0x0000_0000"
       }
     },
     "xtval_nonzero": {
@@ -103,7 +107,8 @@
       "fs_legal_states": "ExtContext_Off",
       "vs_legal_states": "ExtContext_Off"
     },
-    "privileged_isa_version": "Privileged_ISA_1_11"
+    "privileged_isa_version": "Privileged_ISA_1_11",
+    "misa_implemented": true
   },
   "memory": {
     "physaddr_bits": 32,
@@ -231,7 +236,8 @@
     "reservation": {
       "reservation_set_size_exp": 3,
       "require_exact_reservation_addr": false,
-      "invalidate_on_same_hart_store": false
+      "invalidate_on_same_hart_store": false,
+      "invalidate_on_xret": false
     },
     "interrupts": {
       "machine": {
@@ -351,7 +357,8 @@
         "Sv39": false,
         "Sv48": false,
         "Sv57": false
-      }
+      },
+      "hedeleg_zero_writable": true
     },
     "Sha": {
       "supported": false
@@ -722,7 +729,8 @@
         }
       },
       "hcontext": {
-        "supported": false
+        "supported": false,
+        "width": 7
       },
       "icount": {
         "supported": false,
@@ -740,7 +748,22 @@
         "supported": false,
         "maskmax6": 31,
         "address_select_matches_all_addresses": true,
-        "max_chain_length": 4
+        "max_chain_length": 4,
+        "supported_address_access_sizes": {
+          "bits8": true,
+          "bits16": true,
+          "bits32": true,
+          "bits48": true,
+          "bits64": true,
+          "bits128": true
+        },
+        "supported_data_access_sizes": {
+          "bits8": true,
+          "bits16": true,
+          "bits32": true,
+          "bits48": false,
+          "bits64": false
+        }
       },
       "textra": {
         "mhselect": {
@@ -759,6 +782,10 @@
       },
       "num_triggers": 0,
       "scontext": {
+        "supported": false,
+        "width": 16
+      },
+      "tcontrol": {
         "supported": false
       }
     },
@@ -769,6 +796,9 @@
       "supported": false
     },
     "Ssstrict": {
+      "supported": false
+    },
+    "Shlcofideleg": {
       "supported": false
     }
   }
