@@ -33,23 +33,24 @@ jobs:
         with:
           submodules: true
 
-      - name: Checkout Core, Memory and TopLevel (the VHDL sources)
+      - name: Checkout Core, Common-Components, Memory, Peripherals and TopLevel (the VHDL sources)
         # config.yaml's sim.vhdl_sources are "../Core/..." (the core),
-        # "../Memory/..." (the memories) and "../TopLevel/..." (the
+        # "../Memory/..." (the memories), "../Peripherals/..." (the UART) and "../TopLevel/..." (the
         # simulation top), true once all are cloned as siblings of this checkout.
         run: |
-          rm -rf ../Core ../Common-Components ../Memory ../TopLevel
+          rm -rf ../Core ../Common-Components ../Memory ../Peripherals ../TopLevel
           git clone --depth 1 https://github.com/insper-riscv/Core.git ../Core
           git clone --depth 1 https://github.com/insper-riscv/Common-Components.git ../Common-Components
           git clone --depth 1 https://github.com/insper-riscv/Memory.git ../Memory
+          git clone --depth 1 https://github.com/insper-riscv/Peripherals.git ../Peripherals
           git clone --depth 1 https://github.com/insper-riscv/TopLevel.git ../TopLevel
 
-      - name: Install Python dependencies (riscv-tools, editable from tools/Tools, + its sim extra)
+      - name: Install Python dependencies (cocotb; riscv-tools comes from the image)
         run: uv sync
 
       - name: Run ACT4 certification (build + cocotb/GHDL)
         run: |
-          uv run riscv-tools --config tools/riscv_build/config.yaml certify \
+          riscv-tools --config tools/riscv_build/config.yaml certify \
             ${{ inputs.extensions && format('--extensions {0}', inputs.extensions) || '' }}
 
       - name: Upload waveforms

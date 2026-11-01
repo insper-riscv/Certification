@@ -75,11 +75,11 @@ jobs:
             git clone --depth 1 --branch "$SIBLING_REF" "https://github.com/insper-riscv/$repo.git" "../$repo"
           done
 
-      - name: Install Python dependencies (riscv-tools, editable from tools/Tools, + its sim extra)
+      - name: Install Python dependencies (cocotb; riscv-tools comes from the image)
         run: uv sync
 
       - name: Run the ACT4 certification of the profile (build + cocotb/GHDL)
-        run: uv run riscv-tools --config tools/riscv_build/config.profile-${{ matrix.profile }}.yaml certify
+        run: riscv-tools --config tools/riscv_build/config.profile-${{ matrix.profile }}.yaml certify
 
       - name: Upload the log and the waveforms
         if: failure()
