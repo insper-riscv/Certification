@@ -3,16 +3,14 @@
 Same idea as tools/riscv_build/sim/test_c_program.py — watches the RAM
 write bus for a specific address instead of reading rv32im_pipeline_core's
 internal state directly (this GHDL install's VPI can't see array-of-vector
-signals, see that module's own docstring) — but ACT4 tests don't know
-about this project's PASS/FAIL mailbox convention at all. They use the
-HTIF tohost/fromhost convention instead (RVMODEL_HALT_PASS/FAIL, see
-../rv32im-min/rvmodel_macros.h), and print an RVCP-SUMMARY line through
-a "console" word (RVMODEL_IO_WRITE_STR) that link.ld places right after
+signals, see that module's own docstring). The project's own tests and the
+ACT4 tests use the same HTIF tohost/fromhost convention
+(RVMODEL_HALT_PASS/FAIL, see ../rv32im-min/rvmodel_macros.h). ACT4 tests also print
+an RVCP-SUMMARY line through a "console" word (RVMODEL_IO_WRITE_STR) that link.ld places right after
 tohost/fromhost — both watched here the same way.
 
-Unlike test_c_program.py's MAILBOX_PASS/FAIL (1/2), tohost's PASS/FAIL
-encoding is HTIF's own: odd values are "done", 1 = pass, anything else
-odd = fail (RVMODEL_HALT_FAIL always writes exactly 3, but this checks
+tohost's PASS/FAIL encoding is HTIF's: odd values are "done", 1 = pass,
+anything else odd = fail (RVMODEL_HALT_FAIL always writes exactly 3, but this checks
 oddness/value-1 rather than hardcoding 3 alone, matching how Spike
 itself treats tohost).
 """
@@ -23,11 +21,11 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, RisingEdge
 
-# Must stay in sync with ../rv32im-min/link.ld's `ram (rw)` region and
-# its trailing tohost/fromhost/rv32_act_console layout: ORIGIN(ram) +
-# LENGTH(ram) = 0x00020000 + (0x20000 - 20) = 0x3FFEC.
-TOHOST_ADDR = 0x0003FFEC
-CONSOLE_ADDR = 0x0003FFFC
+# Must stay in sync with ../rv32im-min/link.ld: the RAM ends at 0x005FFFE0 (ORIGIN 0x00400000
+# plus LENGTH 2 MB - 32), and the words after it are tohost (8 bytes), fromhost (8 bytes) and the
+# console word (4 bytes, 16 bytes after the end of the RAM).
+TOHOST_ADDR = 0x005FFFE0
+CONSOLE_ADDR = 0x005FFFF0
 TOHOST_PASS = 1
 TIMEOUT_CYCLES = 200_000
 
