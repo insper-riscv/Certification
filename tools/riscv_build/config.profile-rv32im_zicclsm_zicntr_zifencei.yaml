@@ -18,7 +18,7 @@ isa:
 # Only the fields `certify` and the defaults need; ACT4 brings its own
 # linker script (act/rv32im-min/link.ld), memory map and halt/print macros.
 memory:
-  mailbox_addr: 0x0002FFFC
+  tohost_addr: 0x0002FFE8
 
 paths:
   build_dir: build
@@ -38,6 +38,11 @@ sim:
     - ../Core/common/wb_sel_consts.vhd
     - ../Core/common/pc_src_consts.vhd
     - ../Core/common/mem_map_consts.vhd
+    - ../Core/common/fwd_consts.vhd
+    - ../Core/common/word_consts.vhd
+    - ../Core/M/muldiv_consts.vhd
+    - ../Core/Zicsr/csr_value_consts.vhd
+    - ../Core/Zicsr/trap_consts.vhd
     - ../Common-Components/src/generic_register.vhd
     - ../Common-Components/src/adder.vhd
     - ../Common-Components/src/mux_2x1.vhd
@@ -59,9 +64,11 @@ sim:
     - ../Core/M/m_decode.vhd
     - ../Core/M/booth_multiplier_rv32.vhd
     - ../Core/M/non_restoring_divider_rv32.vhd
+    - ../Core/M/muldiv_fusion.vhd
     - ../Core/M/multdiv.vhd
     - ../Core/Zicsr/csr_decode.vhd
     - ../Core/Zicsr/csr_addr_consts.vhd
+    - ../Core/Zicsr/csr_event_consts.vhd
     - ../Core/Zicntr/counter64.vhd
     - ../Core/Zicntr/tick_divider.vhd
     - ../Core/Zicsr/csr_file.vhd
@@ -94,6 +101,12 @@ sim:
     - ../Memory/external/bus/hex_to_seg7.vhd
     - ../Memory/external/bus/seg_display.vhd
     - ../Memory/external/bus/ext_interconnect.vhd
+    - ../Peripherals/UART/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd
+    - ../Peripherals/UART/vendor/opencores_uart2bus/baudGen.vhd
+    - ../Peripherals/UART/vendor/opencores_uart2bus/uartRx.vhd
+    - ../Peripherals/UART/vendor/opencores_uart2bus/uartTx.vhd
+    - ../Peripherals/UART/vendor/opencores_uart2bus/uartTop.vhd
+    - ../Peripherals/UART/uart.vhd
     - ../TopLevel/platforms/internal-mem/rtl/clk_gen_3way.vhd
     - ../TopLevel/platforms/sdram/rtl/rv32im_sdram_sim_test.vhd
   parameters:
@@ -102,6 +115,7 @@ sim:
     SDRAM_FILE: "{sdram_hex_path}"
     HAS_ZICSR: "true"
     HAS_ZICNTR: "true"
+    HAS_ZIHPM: "false"
     HAS_M: "true"
     HAS_ZMMUL: "false"
     HAS_ZIFENCEI: "true"
