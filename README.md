@@ -25,7 +25,7 @@ O VHDL vem de repositórios irmãos clonados lado a lado: [Core](https://github.
 
 ## 3. Escopo
 
-A certificação cobre as extensões `I`, `M`, `Zmmul`, `Zicsr` e `Zifencei`, listadas em `act.extensions` na configuração. Cada uma das 12 combinações dessas extensões sobre a base `I` é um perfil do núcleo, com seu próprio alvo; a lista está em `tools/riscv_build/gen_profiles.py`, e um perfil roda com `riscv-tools --config tools/riscv_build/config.profile-<nome>.yaml certify`. Os perfis com `Zifencei` usam a plataforma com SDRAM.
+A certificação cobre as extensões `I`, `M`, `Zmmul`, `Zicsr`, `Zicntr`, `Zihpm`, `Zifencei` e `Zicclsm`, listadas em `act.extensions` na configuração. Cada uma das 60 combinações válidas dessas extensões sobre a base `I`, lidas da matriz de perfis do Core (`profiles/matrix.yaml`), é um perfil do núcleo com seu próprio alvo, gerado por `tools/riscv_build/gen_profiles.py`; um perfil roda com `riscv-tools --config tools/riscv_build/config.profile-<nome>.yaml certify`. Os perfis com `Zifencei` usam a plataforma com SDRAM, e os alvos `flash-*` a plataforma com a FLASH atrás das caches.
 
 ## 4. Execução
 
