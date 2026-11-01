@@ -20,13 +20,12 @@ Certificação do núcleo RISC-V RV32IM com a suíte oficial ACT4 ([riscv-arch-t
 | `tools/riscv_build/act/profile-*/` | Um alvo por perfil do núcleo (UDB, configuração do Sail e `test_config.yaml`), gerado por `tools/riscv_build/gen_profiles.py` |
 | `tools/riscv_build/act/sim/test_act.py` | Testbench cocotb que observa a palavra HTIF `tohost` |
 | `tools/riscv_build/config.yaml` | Seção `sim:` (fontes VHDL e topo) e seção `act:` (suíte e extensões); `config.sdram.yaml` é a variante com a SDRAM e `config.profile-*.yaml`, a de cada perfil |
-| `tools/Tools` | Pacote `riscv-tools`, cujo comando `certify` conduz todo o fluxo |
 
 O VHDL vem de repositórios irmãos clonados lado a lado: [Core](https://github.com/insper-riscv/Core) (`../Core`, o processador), [Memory](https://github.com/insper-riscv/Memory) (`../Memory`, as memórias) e [TopLevel](https://github.com/insper-riscv/TopLevel) (`../TopLevel`, o topo de simulação).
 
 ## 3. Escopo
 
-A certificação cobre as extensões `I`, `M`, `Zmmul`, `Zicsr` e `Zifencei`, listadas em `act.extensions` na configuração. Cada uma das 12 combinações dessas extensões sobre a base `I` é um perfil do núcleo, com seu próprio alvo; a lista está em `tools/riscv_build/gen_profiles.py`, e um perfil roda com `uv run riscv-tools --config tools/riscv_build/config.profile-<nome>.yaml certify`. Os perfis com `Zifencei` usam a plataforma com SDRAM.
+A certificação cobre as extensões `I`, `M`, `Zmmul`, `Zicsr` e `Zifencei`, listadas em `act.extensions` na configuração. Cada uma das 12 combinações dessas extensões sobre a base `I` é um perfil do núcleo, com seu próprio alvo; a lista está em `tools/riscv_build/gen_profiles.py`, e um perfil roda com `riscv-tools --config tools/riscv_build/config.profile-<nome>.yaml certify`. Os perfis com `Zifencei` usam a plataforma com SDRAM.
 
 ## 4. Execução
 
@@ -37,7 +36,7 @@ git clone https://github.com/insper-riscv/Memory.git    # ao lado
 git clone https://github.com/insper-riscv/TopLevel.git  # ao lado
 cd Certification
 uv sync
-uv run riscv-tools --config tools/riscv_build/config.yaml certify
+riscv-tools --config tools/riscv_build/config.yaml certify
 ```
 
 As ferramentas vêm da imagem `ci-act4` do repositório [Infra](https://github.com/insper-riscv/Infra): GCC RISC-V, Spike, Sail, GHDL, uv e Ruby com Bundler e as gems do UDB do ACT4. O fluxo completo está em `.github/workflows/certification.yml`. A execução de todos os perfis, com um runner separado por perfil, está em `.github/workflows/certification-profiles.yml`; ela lê os arquivos `tools/riscv_build/config.profile-<nome>.yaml` e aceita, no disparo manual, a ramificação dos repositórios irmãos e uma expressão regular sobre o nome do perfil.
