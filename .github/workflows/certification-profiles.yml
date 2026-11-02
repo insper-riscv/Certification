@@ -1,19 +1,17 @@
 name: certification (ACT4, all profiles)
 
 # Runs the ACT4 certification, in simulation, of every profile of the core: one job, and so one
-# separate runner, per profile. The profiles are the tools/riscv_build/config.profile-<name>.yaml
-# files that gen_profiles.py writes from Core/profiles/matrix.yaml, so a new profile gets its runner
-# as soon as its configuration is committed. It runs only on demand (each profile takes about 15 minutes
-# and the base-platform ones need a runner with about 15 GiB of RAM).
+# separate runner, per profile. A profile without Zifencei is a tools/riscv_build/config.profile-<name>.yaml
+# and one with Zifencei, which needs the caches, a tools/riscv_build/config.flash-<name>.yaml (both
+# written by the generators from Insper-RISC-V/Core/profiles/matrix.yaml), so a new profile gets its
+# runner as soon as its configuration is committed. The VHDL is the one of the Insper-RISC-V submodule.
+# It runs only on demand (each profile takes about 15 minutes and the base-platform ones need a runner
+# with about 15 GiB of RAM).
 on:
   workflow_dispatch:
     inputs:
-      sibling_ref:
-        description: "Branch or tag of Core, Common-Components, Memory and TopLevel (the VHDL sources)"
-        required: false
-        default: "main"
       only:
-        description: "Regular expression on the profile name; empty runs every profile"
+        description: "Regular expression on the name of the config (profile-<name> or flash-<name>); empty runs every profile"
         required: false
         default: ""
 
@@ -35,8 +33,8 @@ jobs:
         env:
           ONLY: ${{ inputs.only }}
         run: |
-          names=$(ls tools/riscv_build/config.profile-*.yaml \
-            | sed -E 's#.*/config\.profile-(.*)\.yaml#\1#' \
+          names=$(ls tools/riscv_build/config.profile-*.yaml tools/riscv_build/config.flash-rv*.yaml \
+            | sed -E 's#.*/config\.(.*)\.yaml#\1#' \
             | grep -E "${ONLY:-.}" \
             | sort)
           test -n "$names" || { echo "no profile matches '${ONLY}'"; exit 1; }
@@ -62,24 +60,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          submodules: true
-
-      - name: Checkout Core, Common-Components, Memory, Peripherals and TopLevel (the VHDL sources)
-        # The configurations list "../Core/...", "../Common-Components/...", "../Memory/...", "../Peripherals/..." and
-        # "../TopLevel/..." sources, true once all are cloned as siblings of this checkout.
-        env:
-          SIBLING_REF: ${{ inputs.sibling_ref || 'main' }}
-        run: |
-          rm -rf ../Core ../Common-Components ../Memory ../Peripherals ../TopLevel
-          for repo in Core Common-Components Memory Peripherals TopLevel; do
-            git clone --depth 1 --branch "$SIBLING_REF" "https://github.com/insper-riscv/$repo.git" "../$repo"
-          done
+          submodules: recursive
 
       - name: Install Python dependencies (cocotb; riscv-tools comes from the image)
         run: uv sync
 
       - name: Run the ACT4 certification of the profile (build + cocotb/GHDL)
-        run: riscv-tools --config tools/riscv_build/config.profile-${{ matrix.profile }}.yaml certify
+        run: riscv-tools --config tools/riscv_build/config.${{ matrix.profile }}.yaml certify
 
       - name: Upload the log and the waveforms
         if: failure()
