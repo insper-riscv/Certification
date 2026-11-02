@@ -63,7 +63,10 @@ Qualquer alteração em código, configuração ou documentação deve passar se
 
 ```bash
 uv run riscv-tools --config tools/riscv_build/config.yaml certify  # Executa a suíte ACT4 contra o núcleo em simulação
+uv run riscv-tools --root . check-tree --kind certification        # Árvore do repositório
 ```
+
+O job `tree`, de um workflow à parte, confere a árvore do repositório com `riscv-tools check-tree`.
 
 Ao adicionar, renomear ou remover qualquer arquivo versionado, atualize imediatamente:
 - `tools/riscv_build/config.yaml`
