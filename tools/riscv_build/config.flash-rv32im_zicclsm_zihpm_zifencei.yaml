@@ -4,6 +4,9 @@
 #   uv run riscv-tools --config tools/riscv_build/config.flash-rv32im_zicclsm_zihpm_zifencei.yaml certify
 extends: config.platform-de0-cv.yaml
 
+paths:
+  build_dir: build
+
 sim:
   parameters:
     BOOT_ROM_FILE: "{boot_hex_path}"

@@ -6,6 +6,9 @@
 #   uv run riscv-tools --config tools/riscv_build/config.flash-board-rv32i_zicclsm_zicntr_zifencei_zmmul.yaml certify-board --skip-build
 extends: config.platform-de0-cv.yaml
 
+paths:
+  build_dir: build
+
 act:
   vendor_dir: vendor/riscv-arch-test
   target_config: tools/riscv_build/act/flash-rv32i_zicclsm_zicntr_zifencei_zmmul/test_config.yaml

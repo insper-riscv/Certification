@@ -6,6 +6,9 @@
 #   uv run riscv-tools --config tools/riscv_build/config.flash-ram-board-rv32im_zifencei.yaml certify-board --skip-build
 extends: config.platform-de0-cv.yaml
 
+paths:
+  build_dir: build
+
 act:
   vendor_dir: vendor/riscv-arch-test
   target_config: tools/riscv_build/act/flash-ram-rv32im_zifencei/test_config.yaml
