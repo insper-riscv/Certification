@@ -4,33 +4,28 @@ Usage, from the root of the Certification repository, after gen_profiles.py:
 
     uv run python tools/riscv_build/gen_flash_profiles.py
 
-For each profile with Zifencei (the SDRAM platforms) it writes tools/riscv_build/act/flash-<name>/
-(the profile's UDB and test configuration, a linker script with the code in the FLASH and the data
-in the SDRAM, and a Sail configuration with the extra FLASH region) and
-tools/riscv_build/config.flash-<name>.yaml, to run with
-`riscv-tools --config tools/riscv_build/config.flash-<name>.yaml certify`.
+For each profile with Zifencei it writes tools/riscv_build/act/flash-<name>/ (the profile's UDB and
+test configuration, a linker script with the code in the FLASH and the data in the SDRAM, and a Sail
+configuration with the extra FLASH region) and tools/riscv_build/config.flash-<name>.yaml, to run with
+`riscv-tools --config tools/riscv_build/config.flash-<name>.yaml certify`. The configs extend
+config.platform-de0-cv.yaml, the platform with the FLASH behind the caches, which `riscv-tools platform
+sync` writes from the Insper-RISC-V submodule.
 """
 import copy
 import json
-import re
 import shutil
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from profile_params import extension_list, parameter_lines, variants
 
 root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.cwd()
 rb = root / "tools/riscv_build"
 template = rb / "act/rv32im-sdram-flash"
 
-CACHE_SOURCES = [
-    "../Memory/external/cache/dcache.vhd",
-    "../Memory/external/cache/flash_chip.vhd",
-    "../Memory/external/cache/flash_arbiter.vhd",
-    "../Memory/external/cache/mem_region_router.vhd",
-]
-
-for cfg in sorted(rb.glob("config.profile-*.yaml")):
-    name = cfg.name.removeprefix("config.profile-").removesuffix(".yaml")
-    if "zifencei" not in name:
+for name, ext in variants(root):
+    if "Zifencei" not in ext:
         continue
     src = rb / "act" / f"profile-{name}"
     tgt = f"flash-{name}"
@@ -56,43 +51,80 @@ for cfg in sorted(rb.glob("config.profile-*.yaml")):
     sj["memory"]["regions"].sort(key=lambda r: int(r["base"]["value"], 16))
     (dst / "sail.json").write_text(json.dumps(sj, indent=2))
 
-    c = cfg.read_text()
-    c = c.replace(f"act/profile-{name}/", f"act/{tgt}/")
-    c = c.replace("platforms/sdram/rtl/rv32im_sdram_sim_test.vhd", "platforms/sdram-flash/rtl/rv32im_sdram_flash_sim_test.vhd")
-    c = c.replace("toplevel: rv32im_sdram_sim_test", "toplevel: rv32im_sdram_flash_sim_test")
-    c = c.replace("    - ../Memory/external/cache/icache.vhd\n",
-                  "    - ../Memory/external/cache/icache.vhd\n" + "".join(f"    - {s}\n" for s in CACHE_SOURCES))
-    c = re.sub(r"  # Where the SDRAM starts:.*\n  sdram_base: (\S+)\n",
-               "  # The code is in the FLASH, behind the caches, and the data in the SDRAM; the boot ROM jumps to the FLASH.\n"
-               "  flash_base: 0x20000000\n  sdram_base: \\1\n", c)
-    c = c.replace('    rom_addr_width: "9"', '    rom_addr_width: "18"')
-    c = c.replace("# The ACT4 track", "# The ACT4 track on the platform with the FLASH behind the caches, ")
-    (rb / f"config.flash-{name}.yaml").write_text(c)
+    exts = ",".join(extension_list(ext))
+    rtgt = f"flash-ram-{name}"
+    params = parameter_lines(ext)
 
-    exts = re.search(r'extensions: "(.*)"', c).group(1)
-    (rb / f"config.flash-board-{name}.yaml").write_text(
-        f"""# The ACT4 ELFs of {tgt} on the board (DE0-CV): the platform with the FLASH behind the caches
-# supplies the memory map, the JTAG device and the debug ports, and this file adds the ACT4 side. The
-# code goes to the FLASH storage (132 KB) over the memory editor and the data to the SDRAM through the
-# debug port. The board must be programmed with that platform.
-#
-#   uv run riscv-tools --config tools/riscv_build/config.flash-board-{name}.yaml certify-board --skip-build
-extends: ../../../TopLevel/platforms/sdram-flash/config.yaml
+    def sim_config(target: str, extensions: str, ram_variant: bool) -> str:
+        """Escreve o config de simulação de um alvo na plataforma com a FLASH atrás das caches."""
+        ram_lines = "" if ram_variant else (
+            "  # tests that rewrite their own code run from the variant, with the body in the SDRAM\n"
+            "  ram_tests: [Zifencei-fence.i-00]\n"
+            f"  ram_target_config: tools/riscv_build/act/{rtgt}/test_config.yaml\n"
+            '  ram_extensions: "Zifencei"\n'
+        )
+        return (
+            f"# The ACT4 track of {target} on the platform with the FLASH behind the caches: the platform\n"
+            "# (config.platform-de0-cv.yaml) with the target, the extensions and the hardware of the profile.\n"
+            "#\n"
+            f"#   uv run riscv-tools --config tools/riscv_build/config.{target}.yaml certify\n"
+            "extends: config.platform-de0-cv.yaml\n"
+            "\n"
+            "sim:\n"
+            "  parameters:\n"
+            '    BOOT_ROM_FILE: "{boot_hex_path}"\n'
+            '    ROM_FILE: "{hex_path}"\n'
+            '    SDRAM_FILE: "{sdram_hex_path}"\n'
+            f"{params}"
+            "\n"
+            "act:\n"
+            "  vendor_dir: vendor/riscv-arch-test\n"
+            f"  target_config: tools/riscv_build/act/{target}/test_config.yaml\n"
+            f'  extensions: "{extensions}"\n'
+            "  jobs: 0\n"
+            f"{ram_lines}"
+            "  # The code is in the FLASH, behind the caches, and the data in the SDRAM; the boot ROM jumps to the FLASH.\n"
+            "  flash_base: 0x20000000\n"
+            "  sdram_base: 0x40000000\n"
+            "  sim_parameters:\n"
+            '    rom_addr_width: "18"\n'
+            '    ram_addr_width: "9"\n'
+        )
 
-act:
-  vendor_dir: vendor/riscv-arch-test
-  target_config: tools/riscv_build/act/{tgt}/test_config.yaml
-  extensions: "{exts}"
-  jobs: 0
-  flash_base: 0x20000000
-  # the words of the FLASH storage in the FPGA: an ELF whose code is larger is reported, not run
-  flash_words: 33792
-  sdram_base: 0x40000000
-  sdram_region_bytes: 0x100000
-  board_timeout_s: 30
-  board_display: true
-"""
-    )
+    def board_config(target: str, extensions: str, ram_variant: bool) -> str:
+        """Escreve o config do alvo na placa (DE0-CV): a plataforma dá o mapa de memória e o JTAG."""
+        ram_lines = "" if ram_variant else (
+            "  # tests that rewrite their own code run from the variant, with the body in the SDRAM\n"
+            "  ram_tests: [Zifencei-fence.i-00]\n"
+            f"  ram_target_config: tools/riscv_build/act/{rtgt}/test_config.yaml\n"
+            '  ram_extensions: "Zifencei"\n'
+        )
+        return (
+            f"# The ACT4 ELFs of {target} on the board (DE0-CV): the platform with the FLASH behind the caches\n"
+            "# supplies the memory map, the JTAG device and the debug ports, and this file adds the ACT4 side. The\n"
+            "# code goes to the FLASH storage (132 KB) over the memory editor and the data to the SDRAM through the\n"
+            "# debug port. The board must be programmed with that platform.\n"
+            "#\n"
+            f"#   uv run riscv-tools --config tools/riscv_build/config.{'flash-ram-board-' + name if ram_variant else 'flash-board-' + name}.yaml certify-board --skip-build\n"
+            "extends: config.platform-de0-cv.yaml\n"
+            "\n"
+            "act:\n"
+            "  vendor_dir: vendor/riscv-arch-test\n"
+            f"  target_config: tools/riscv_build/act/{target}/test_config.yaml\n"
+            f'  extensions: "{extensions}"\n'
+            "  jobs: 0\n"
+            f"{ram_lines}"
+            "  flash_base: 0x20000000\n"
+            "  # the words of the FLASH storage in the FPGA: an ELF whose code is larger is reported, not run\n"
+            "  flash_words: 33792\n"
+            "  sdram_base: 0x40000000\n"
+            "  sdram_region_bytes: 0x100000\n"
+            "  board_timeout_s: 30\n"
+            "  board_display: true\n"
+        )
+
+    (rb / f"config.flash-{name}.yaml").write_text(sim_config(tgt, exts, ram_variant=False))
+    (rb / f"config.flash-board-{name}.yaml").write_text(board_config(tgt, exts, ram_variant=False))
 
     # The Zifencei test rewrites its own code, which a FLASH ignores: its body runs from the SDRAM.
     rtgt = f"flash-ram-{name}"
@@ -106,22 +138,6 @@ act:
         f = rdst / fname
         if f.exists():
             f.write_text(f.read_text().replace(tgt, rtgt))
-    for kind in ("config.flash-", "config.flash-board-"):
-        src_cfg = (rb / f"{kind}{name}.yaml").read_text()
-        src_cfg = src_cfg.replace(f"act/{tgt}/", f"act/{rtgt}/")
-        src_cfg = re.sub(r'extensions: ".*"', 'extensions: "Zifencei"', src_cfg)
-        (rb / f"{kind.replace('flash-', 'flash-ram-')}{name}.yaml").write_text(src_cfg)
-
-    # The profile's own configs take that test from the variant, so one run reports every test.
-    for kind in ("config.flash-", "config.flash-board-"):
-        main_cfg = rb / f"{kind}{name}.yaml"
-        main_cfg.write_text(main_cfg.read_text().replace(
-            "  jobs: 0\n",
-            "  jobs: 0\n"
-            "  # tests that rewrite their own code run from the variant, with the body in the SDRAM\n"
-            "  ram_tests: [Zifencei-fence.i-00]\n"
-            f"  ram_target_config: tools/riscv_build/act/{rtgt}/test_config.yaml\n"
-            '  ram_extensions: "Zifencei"\n',
-            1,
-        ))
+    (rb / f"config.flash-ram-{name}.yaml").write_text(sim_config(rtgt, "Zifencei", ram_variant=True))
+    (rb / f"config.flash-ram-board-{name}.yaml").write_text(board_config(rtgt, "Zifencei", ram_variant=True))
     print(name, "->", tgt)

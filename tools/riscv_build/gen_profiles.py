@@ -8,27 +8,25 @@ Usage, from the root of the Certification repository:
 For each profile it writes tools/riscv_build/act/profile-<name>/ (UDB, Sail configuration and
 test configuration) and tools/riscv_build/config.profile-<name>.yaml, to run with
 `riscv-tools --config tools/riscv_build/config.profile-<name>.yaml certify`. A profile with
-Zifencei uses the SDRAM platform (config.sdram.yaml); the others use the plain one (config.yaml).
+Zifencei needs the caches and has no config here (gen_flash_profiles.py writes it, for the platform with the FLASH
+behind the caches); the others extend config.yaml, which extends the internal-mem platform.
 """
-import json, re, shutil, subprocess, sys
+import json, re, shutil, sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from profile_params import extension_list, has_csr, parameter_lines, variants
 
 root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.cwd()
 rb = root / "tools/riscv_build"
 
-# The profiles come from the specification of the core (riscv-tools profiles). One without Zicclsm
-# does not declare it, leaves MISALIGNED_LDST off and runs the core with has_zicclsm = false. Zicntr
-# implies Zicsr: the hardware turns on both, and the ISA string and the lists of tests cite both.
-SPEC = root.parent / "Core/profiles/matrix.yaml"
-_listing = subprocess.run(
-    ["uv", "run", "riscv-tools", "profiles", "--spec", str(SPEC), "--format", "json"],
-    cwd=root, check=True, capture_output=True, text=True,
-).stdout
-VARIANTS = [(p["name"], set(p["extensions"])) for p in json.loads(_listing)]
+# The profiles come from the specification of the core (riscv-tools profiles), which is in the
+# Insper-RISC-V submodule (profile_params.py).
+VARIANTS = variants(root)
 
 for name, ext in VARIANTS:
     sdram = "Zifencei" in ext
-    csr = "Zicsr" in ext or "Zicntr" in ext or "Zihpm" in ext
+    csr = has_csr(ext)
     base = "rv32im-sdram" if sdram else "rv32im-min"
     tgt = f"profile-{name}"
     dst = rb / "act" / tgt
@@ -104,18 +102,28 @@ for name, ext in VARIANTS:
     if (dst / "run_cmd.txt").exists():
         (dst / "run_cmd.txt").write_text((dst / "run_cmd.txt").read_text().replace(base, tgt))
 
-    # certify config
-    cfg_src = rb / ("config.sdram.yaml" if sdram else "config.yaml")
-    c = cfg_src.read_text()
-    c = re.sub(r"target_config: .*", f"target_config: tools/riscv_build/act/{tgt}/test_config.yaml", c)
-    exts = ["I"] + (["M"] if "M" in ext else []) + (["Zmmul"] if ("Zmmul" in ext or "M" in ext) else []) + \
-           (["Zicsr"] if csr else []) + (["Zicntr"] if "Zicntr" in ext else []) + (["Zihpm"] if "Zihpm" in ext else []) + (["Zifencei"] if "Zifencei" in ext else []) + \
-           (["Zicclsm"] if "Zicclsm" in ext else [])
-    c = re.sub(r'extensions: ".*"', f'extensions: "{",".join(exts)}"', c)
-    c = re.sub(r'(\n    HAS_ZICSR: )".*"', lambda m: f'{m.group(1)}"{str(csr).lower()}"\n    HAS_ZICNTR: "{str("Zicntr" in ext).lower()}"\n    HAS_ZIHPM: "{str("Zihpm" in ext).lower()}"\n    HAS_M: "{str("M" in ext).lower()}"\n    HAS_ZMMUL: "{str("Zmmul" in ext).lower()}"', c)
-    if "Zicclsm" not in ext:
-        c = re.sub(r'(\n    HAS_ZICSR: ".*")', r'\1\n    HAS_ZICCLSM: "false"', c)
+    # certify config: the profile on the plain platform (config.yaml extends the internal-mem one) and
+    # only what is the profile's. A profile with Zifencei needs the caches: it runs on the platform
+    # with the FLASH behind them (gen_flash_profiles.py), so it has no config of its own here.
+    exts = extension_list(ext)
+    config = rb / f"config.profile-{name}.yaml"
     if sdram:
-        c = re.sub(r'(\n    HAS_ZIFENCEI: )".*"', r'\1"true"', c)
-    (rb / f"config.profile-{name}.yaml").write_text(c)
+        config.unlink(missing_ok=True)
+        print(name, base, ",".join(exts), "(config: gen_flash_profiles.py)")
+        continue
+    config.write_text(
+        f"""# The ACT4 track of the profile {name} on the plain platform: config.yaml (the internal-mem
+# platform and the ACT4 settings) with the target, the extensions and the hardware of the profile.
+#
+#   uv run riscv-tools --config tools/riscv_build/config.profile-{name}.yaml certify
+extends: config.yaml
+
+sim:
+  parameters:
+{parameter_lines(ext)}
+act:
+  target_config: tools/riscv_build/act/{tgt}/test_config.yaml
+  extensions: "{",".join(exts)}"
+"""
+    )
     print(name, base, ",".join(exts))
