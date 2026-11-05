@@ -30,7 +30,7 @@ As três palavras do HTIF ficam no fim da RAM, em `0x001FFFE0` (`tohost`), `0x00
 | `tools/riscv_build/act/profile-*/` e `config.profile-*.yaml` | `gen_profiles.py`, um por perfil da matriz |
 | `tools/riscv_build/act/flash-*/`, `act/flash-ram-*/` e `config.flash-*.yaml` | `gen_flash_profiles.py`, um por perfil com Zifencei |
 
-Os perfis de base RV32E (`rv32e*` e `rv32em*`) usam `isa.base: e`, o genérico `HAS_E` e o ABI `ilp32e`.
+Os perfis de base RV32E (`rv32e*` e `rv32em*`) usam `isa.base: e`, o genérico `HAS_E` e o ABI `ilp32e`. O UDB publicado não declara a extensão `E`, então o UDB desses perfis traz `arch_overlay: rv32e`, e `sh tools/riscv_build/install_udb_overlay.sh` instala em `ci-act4` a pasta `tools/riscv_build/act/udb-overlay` com essa extensão antes do `certify`.
 
 ## 4. Como rodar um perfil
 

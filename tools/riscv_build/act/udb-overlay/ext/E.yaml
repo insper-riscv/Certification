@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=../../../schemas/ext_schema.json
+---
+$schema: "ext_schema.json#"
+kind: extension
+name: E
+long_name: RV32E base integer instruction set (16 integer registers)
+type: unprivileged
+description: |
+  The RV32E base reduces the integer register file to x0 to x15. The UDB of the published gems does not
+  declare it, so this overlay does.
+versions:
+  - version: "2.0.0"
+    state: ratified
+    ratification_date: 2019-07

@@ -39,9 +39,13 @@ for name, ext in VARIANTS:
     # UDB
     y = (dst / f"{tgt}.yaml").read_text()
     y = y.replace(f"name: {base}", f"name: {tgt}")
+    if is_e(name):
+        # The UDB of the published gems has no E extension; act/udb-overlay declares it, and
+        # install_udb_overlay.sh puts that folder in the gem as the overlay named rv32e.
+        y = y.replace("type: fully configured", "type: fully configured\narch_overlay: rv32e", 1)
     y = re.sub(r"description: >-\n.*?\n(?=implemented_extensions)", f"description: >-\n  {name}, machine mode only.\n", y, flags=re.S)
     # The RV32E profiles declare the E base (16 registers) in place of I.
-    lst = ['  - { name: E, version: "= 2.0" }' if is_e(name) else '  - { name: I, version: "= 2.1" }']
+    lst = ['  - { name: E, version: "= 2.0.0" }' if is_e(name) else '  - { name: I, version: "= 2.1" }']
     if "M" in ext:
         lst += ['  - { name: M, version: "= 2.0" }', '  - { name: Zmmul, version: "= 1.0.0" }']
     if "Zmmul" in ext:

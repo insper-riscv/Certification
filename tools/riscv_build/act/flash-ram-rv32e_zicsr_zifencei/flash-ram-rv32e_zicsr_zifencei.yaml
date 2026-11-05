@@ -10,11 +10,12 @@
 $schema: config_schema.json#
 kind: architecture configuration
 type: fully configured
+arch_overlay: rv32e
 name: flash-ram-rv32e_zicsr_zifencei
 description: >-
   rv32e_zicsr_zifencei, machine mode only.
 implemented_extensions:
-  - { name: E, version: "= 2.0" }
+  - { name: E, version: "= 2.0.0" }
   - { name: Zicsr, version: "= 2.0" }
   - { name: Sm, version: "= 1.12.0" }
   - { name: Zifencei, version: "= 2.0" }
