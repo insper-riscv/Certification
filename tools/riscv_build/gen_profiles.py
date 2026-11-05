@@ -8,14 +8,14 @@ Usage, from the root of the Certification repository:
 For each profile it writes tools/riscv_build/act/profile-<name>/ (UDB, Sail configuration and
 test configuration) and tools/riscv_build/config.profile-<name>.yaml, to run with
 `riscv-tools --config tools/riscv_build/config.profile-<name>.yaml certify`. A profile with
-Zifencei needs the caches and has no config here (gen_flash_profiles.py writes it, for the platform with the FLASH
-behind the caches); the others extend config.yaml, which extends the internal-mem platform.
+Zifencei needs the caches and has no config here (gen_flash_profiles.py writes it, for the platform with the ROM
+and the RAM behind the caches); the others extend config.modular.yaml.
 """
 import json, re, shutil, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from profile_params import extension_list, has_csr, parameter_lines, variants
+from profile_params import extension_list, has_csr, is_e, parameter_lines, variants, write_modular_config
 
 root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.cwd()
 rb = root / "tools/riscv_build"
@@ -23,11 +23,12 @@ rb = root / "tools/riscv_build"
 # The profiles come from the specification of the core (riscv-tools profiles), which is in the
 # Insper-RISC-V submodule (profile_params.py).
 VARIANTS = variants(root)
+write_modular_config(root)
 
 for name, ext in VARIANTS:
-    sdram = "Zifencei" in ext
+    zifencei = "Zifencei" in ext
     csr = has_csr(ext)
-    base = "rv32im-sdram" if sdram else "rv32im-min"
+    base = "rv32im-min"
     tgt = f"profile-{name}"
     dst = rb / "act" / tgt
     if dst.exists():
@@ -39,7 +40,8 @@ for name, ext in VARIANTS:
     y = (dst / f"{tgt}.yaml").read_text()
     y = y.replace(f"name: {base}", f"name: {tgt}")
     y = re.sub(r"description: >-\n.*?\n(?=implemented_extensions)", f"description: >-\n  {name}, machine mode only.\n", y, flags=re.S)
-    lst = ['  - { name: I, version: "= 2.1" }']
+    # The RV32E profiles declare the E base (16 registers) in place of I.
+    lst = ['  - { name: E, version: "= 2.0" }' if is_e(name) else '  - { name: I, version: "= 2.1" }']
     if "M" in ext:
         lst += ['  - { name: M, version: "= 2.0" }', '  - { name: Zmmul, version: "= 1.0.0" }']
     if "Zmmul" in ext:
@@ -78,6 +80,7 @@ for name, ext in VARIANTS:
     sj = json.loads((dst / "sail.json").read_text())
     flags = {"M": "M" in ext, "Zmmul": "M" in ext or "Zmmul" in ext, "Zicsr": csr, "Zicntr": "Zicntr" in ext, "Zihpm": "Zihpm" in ext, "Zifencei": "Zifencei" in ext}
     flags["Zicclsm"] = "Zicclsm" in ext
+    sj["base"]["E"] = is_e(name)
     for k, v in flags.items():
         sj["extensions"].setdefault(k, {})["supported"] = v
     if "Zicntr" in ext or "Zihpm" in ext:
@@ -102,25 +105,27 @@ for name, ext in VARIANTS:
     if (dst / "run_cmd.txt").exists():
         (dst / "run_cmd.txt").write_text((dst / "run_cmd.txt").read_text().replace(base, tgt))
 
-    # certify config: the profile on the plain platform (config.yaml extends the internal-mem one) and
-    # only what is the profile's. A profile with Zifencei needs the caches: it runs on the platform
-    # with the FLASH behind them (gen_flash_profiles.py), so it has no config of its own here.
-    exts = extension_list(ext)
+    # certify config: the profile on the modular platform with the memories inside the chip
+    # (config.modular.yaml) and only what is the profile's. A profile with Zifencei needs the caches:
+    # it runs with the FLASH and the RAM behind them (gen_flash_profiles.py), so it has no config here.
+    exts = extension_list(ext, name)
+    # RV32E: the toolchain builds with -march=rv32e and -mabi=ilp32e
+    isa_lines = "\nisa:\n  base: e\n" if is_e(name) else ""
     config = rb / f"config.profile-{name}.yaml"
-    if sdram:
+    if zifencei:
         config.unlink(missing_ok=True)
         print(name, base, ",".join(exts), "(config: gen_flash_profiles.py)")
         continue
     config.write_text(
-        f"""# The ACT4 track of the profile {name} on the plain platform: config.yaml (the internal-mem
-# platform and the ACT4 settings) with the target, the extensions and the hardware of the profile.
+        f"""# The ACT4 track of the profile {name} on the modular platform with the memories inside the chip:
+# config.modular.yaml with the target, the extensions and the hardware of the profile.
 #
 #   uv run riscv-tools --config tools/riscv_build/config.profile-{name}.yaml certify
-extends: config.yaml
-
+extends: config.modular.yaml
+{isa_lines}
 sim:
   parameters:
-{parameter_lines(ext)}
+{parameter_lines(ext, name)}
 act:
   target_config: tools/riscv_build/act/{tgt}/test_config.yaml
   extensions: "{",".join(exts)}"

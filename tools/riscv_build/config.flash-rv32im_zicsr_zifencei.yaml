@@ -1,17 +1,17 @@
-# The ACT4 track of flash-rv32im_zicsr_zifencei on the platform with the FLASH behind the caches: the platform
-# (config.platform-de0-cv.yaml) with the target, the extensions and the hardware of the profile.
+# The ACT4 track of flash-rv32im_zicsr_zifencei on the modular platform with the ROM and the RAM behind the caches: the
+# platform (config.modular.yaml) with the target, the extensions and the hardware of the profile.
 #
 #   uv run riscv-tools --config tools/riscv_build/config.flash-rv32im_zicsr_zifencei.yaml certify
-extends: config.platform-de0-cv.yaml
-
-paths:
-  build_dir: build
+extends: config.modular.yaml
 
 sim:
   parameters:
-    BOOT_ROM_FILE: "{boot_hex_path}"
+    BOOT_ROM_FILE: "{hex_path}"
     ROM_FILE: "{hex_path}"
-    SDRAM_FILE: "{sdram_hex_path}"
+    RAM_FILE: "{sdram_hex_path}"
+    ROM_EXTERNAL: "true"
+    RAM_EXTERNAL: "true"
+    HAS_E: "false"
     HAS_ZICSR: "true"
     HAS_ZICCLSM: "false"
     HAS_ZICNTR: "false"
@@ -21,17 +21,13 @@ sim:
     HAS_ZIFENCEI: "true"
 
 act:
-  vendor_dir: vendor/riscv-arch-test
   target_config: tools/riscv_build/act/flash-rv32im_zicsr_zifencei/test_config.yaml
   extensions: "I,M,Zmmul,Zicsr,Zifencei"
-  jobs: 0
-  # tests that rewrite their own code run from the variant, with the body in the SDRAM
+  # tests that rewrite their own code run from the variant, with the body in the RAM
   ram_tests: [Zifencei-fence.i-00]
   ram_target_config: tools/riscv_build/act/flash-ram-rv32im_zicsr_zifencei/test_config.yaml
   ram_extensions: "Zifencei"
-  # The code is in the FLASH, behind the caches, and the data in the SDRAM; the boot ROM jumps to the FLASH.
-  flash_base: 0x20000000
-  sdram_base: 0x40000000
-  sim_parameters:
-    rom_addr_width: "18"
-    ram_addr_width: "9"
+  # The code is in the ROM, behind the instruction cache, and the data in the RAM, behind the data cache; the
+  # images start at the address 0 of the ROM (the boot ROM stub is in the first 4 KB) and at the base of the RAM.
+  flash_base: 0x0
+  sdram_base: 0x100000
