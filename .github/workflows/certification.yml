@@ -23,7 +23,7 @@ jobs:
     # ACT4 tests run entirely under cocotb/GHDL, never on the FPGA, on a
     # GitHub-hosted runner, in the ci-act4 image: it carries the RISC-V GCC, the Sail
     # model that is ACT4's reference, and Ruby, Bundler and the UDB gems of the ACT4
-    # commit this repository pins.
+    # commit this repository pins. The VHDL is the one of the Insper-RISC-V submodule.
     runs-on: ubuntu-26.04
     container:
       image: ghcr.io/insper-riscv/ci-act4:latest
@@ -31,19 +31,24 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          submodules: true
+          submodules: recursive
 
-      - name: Checkout Core, Common-Components, Memory, Peripherals and TopLevel (the VHDL sources)
-        # config.yaml's sim.vhdl_sources are "../Core/..." (the core),
-        # "../Memory/..." (the memories), "../Peripherals/..." (the UART) and "../TopLevel/..." (the
-        # simulation top), true once all are cloned as siblings of this checkout.
+      - name: The platform configs are the ones the platforms generate
+        # Nobody edits config.platform-*.yaml by hand: riscv-tools platform sync writes it from the
+        # platform config of the Insper-RISC-V submodule, with the paths from this project's root.
         run: |
-          rm -rf ../Core ../Common-Components ../Memory ../Peripherals ../TopLevel
-          git clone --depth 1 https://github.com/insper-riscv/Core.git ../Core
-          git clone --depth 1 https://github.com/insper-riscv/Common-Components.git ../Common-Components
-          git clone --depth 1 https://github.com/insper-riscv/Memory.git ../Memory
-          git clone --depth 1 https://github.com/insper-riscv/Peripherals.git ../Peripherals
-          git clone --depth 1 https://github.com/insper-riscv/TopLevel.git ../TopLevel
+          for platform in "internal-mem src/simulation/internal-mem" "de0-cv src/cyclone-v/de0-cv"; do
+            set -- $platform
+            riscv-tools --root . platform sync --check \
+              --source "Insper-RISC-V/$2/config.yaml" --prefix Insper-RISC-V \
+              --output "tools/riscv_build/config.platform-$1.yaml"
+          done
+
+      - name: The targets and the configs of the profiles are the ones the generators write
+        run: |
+          uv run python tools/riscv_build/gen_profiles.py
+          uv run python tools/riscv_build/gen_flash_profiles.py
+          test -z "$(git status --porcelain -- tools/riscv_build)" || { git status --short -- tools/riscv_build; echo "regenerate the profiles and commit them"; exit 1; }
 
       - name: Install Python dependencies (cocotb; riscv-tools comes from the image)
         run: uv sync

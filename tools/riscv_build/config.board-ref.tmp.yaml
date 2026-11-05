@@ -1,5 +1,0 @@
-extends: config.sdram-board.yaml
-act:
-  target_config: tools/riscv_build/act/profile-rv32im_zicclsm_zicntr_zifencei/test_config.yaml
-  extensions: "I,M,Zmmul,Zicsr,Zicntr,Zifencei,Zicclsm"
-  board_timeout_s: 10

@@ -21,11 +21,11 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, RisingEdge
 
-# Must stay in sync with ../rv32im-min/link.ld: the RAM ends at 0x005FFFE0 (ORIGIN 0x00400000
-# plus LENGTH 2 MB - 32), and the words after it are tohost (8 bytes), fromhost (8 bytes) and the
+# Must stay in sync with ../rv32im-min/link.ld: the RAM ends at 0x001FFFE0 (ORIGIN 0x00100000
+# plus LENGTH 1 MB - 32), and the words after it are tohost (8 bytes), fromhost (8 bytes) and the
 # console word (4 bytes, 16 bytes after the end of the RAM).
-TOHOST_ADDR = 0x005FFFE0
-CONSOLE_ADDR = 0x005FFFF0
+TOHOST_ADDR = 0x001FFFE0
+CONSOLE_ADDR = 0x001FFFF0
 TOHOST_PASS = 1
 TIMEOUT_CYCLES = 200_000
 

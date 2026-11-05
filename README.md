@@ -15,31 +15,30 @@ Certificação do núcleo RISC-V RV32IM com a suíte oficial ACT4 ([riscv-arch-t
 | Caminho | Conteúdo |
 | :--- | :--- |
 | `vendor/riscv-arch-test` | Suíte oficial, em versão fixada como submódulo |
-| `tools/riscv_build/act/rv32im-min/` | Alvo do DUT: `test_config.yaml`, o YAML do UDB, `rvmodel_macros.h`, `link.ld` e `spike-rv32im-min` (Spike com o mapa de memória deste alvo, usado como modelo de referência) |
-| `tools/riscv_build/act/rv32im-sdram/` | Alvo com o código e os dados na SDRAM, para as extensões que dependem dela (Zifencei) |
+| `tools/riscv_build/act/rv32im-min/` | Alvo modelo do DUT na plataforma modular: `test_config.yaml`, o YAML do UDB, `rvmodel_macros.h`, `link.ld` e `link-ram.ld` (a variante do teste que reescreve o próprio código) |
 | `tools/riscv_build/act/profile-*/` | Um alvo por perfil do núcleo (UDB, configuração do Sail e `test_config.yaml`), gerado por `tools/riscv_build/gen_profiles.py` |
-| `tools/riscv_build/act/sim/test_act.py` | Testbench cocotb que observa a palavra HTIF `tohost` |
-| `tools/riscv_build/config.yaml` | Seção `sim:` (fontes VHDL e topo) e seção `act:` (suíte e extensões); `config.sdram.yaml` é a variante com a SDRAM e `config.profile-*.yaml`, a de cada perfil |
+| `tools/riscv_build/act/sim/` | O topo `act_modular_top` e os testbenches cocotb que observam a palavra HTIF `tohost` (`test_act.py` no barramento da RAM, `test_act_sdram.py` no chip de RAM) |
+| `Insper-RISC-V/` | Submódulo com o núcleo, as memórias, os periféricos e os topos de simulação das plataformas, na versão que este repositório fixa |
+| `tools/riscv_build/config.platform-*.yaml` | Configuração de cada plataforma (fontes VHDL, topo e mapa de memória), escrita por `riscv-tools platform sync` a partir do submódulo e nunca editada à mão |
+| `tools/riscv_build/config.modular.yaml` | Plataforma modular de simulação (fontes VHDL, topo e mapa de memória), escrita por `gen_profiles.py` e nunca editada à mão |
+| `tools/riscv_build/config.yaml` | Estende `config.modular.yaml` e acrescenta a seção `act:` do alvo mínimo; `config.profile-*.yaml` é a de cada perfil sem Zifencei, e `config.flash-*.yaml`, a de cada perfil com Zifencei |
 
-O VHDL vem de repositórios irmãos clonados lado a lado: [Core](https://github.com/insper-riscv/Core) (`../Core`, o processador), [Memory](https://github.com/insper-riscv/Memory) (`../Memory`, as memórias) e [TopLevel](https://github.com/insper-riscv/TopLevel) (`../TopLevel`, o topo de simulação).
+O VHDL vem do submódulo [Insper-RISC-V](https://github.com/insper-riscv/Insper-RISC-V), que traz o `Core` (o processador), a `Memory` (as memórias), os `Peripherals` e os topos de simulação das plataformas. Os caminhos dos arquivos de configuração das plataformas começam por `Insper-RISC-V/`, a pasta do submódulo.
 
 ## 3. Escopo
 
-A certificação cobre as extensões `I`, `M`, `Zmmul`, `Zicsr`, `Zicntr`, `Zihpm`, `Zifencei` e `Zicclsm`, listadas em `act.extensions` na configuração. Cada uma das 60 combinações válidas dessas extensões sobre a base `I`, lidas da matriz de perfis do Core (`profiles/matrix.yaml`), é um perfil do núcleo com seu próprio alvo, gerado por `tools/riscv_build/gen_profiles.py`; um perfil roda com `riscv-tools --config tools/riscv_build/config.profile-<nome>.yaml certify`. Os perfis com `Zifencei` usam a plataforma com SDRAM, e os alvos `flash-*` a plataforma com a FLASH atrás das caches.
+A certificação cobre as extensões `I`, `M`, `Zmmul`, `Zicsr`, `Zicntr`, `Zihpm`, `Zifencei` e `Zicclsm`, listadas em `act.extensions` na configuração. Cada uma das 120 combinações válidas dessas extensões sobre as bases `I` (60 perfis, 32 registradores) e `E` (60 perfis, 16 registradores), lidas da matriz de perfis do Core (`profiles/matrix.yaml`), é um perfil do núcleo com seu próprio alvo, gerado por `tools/riscv_build/gen_profiles.py`. Todos rodam na plataforma modular de simulação, com ROM e RAM de 1 MB. Um perfil sem `Zifencei` roda com `riscv-tools --config tools/riscv_build/config.profile-<nome>.yaml certify`, com as memórias dentro do chip. Os perfis com `Zifencei` precisam das caches (de 4 kbit) e rodam com a ROM e a RAM atrás delas, por `tools/riscv_build/config.flash-<nome>.yaml`; os alvos `flash-ram-*` rodam o teste que reescreve o próprio código a partir da RAM. Os detalhes estão em [docs/pt-br/act4/platform.md](docs/pt-br/act4/platform.md).
 
 ## 4. Execução
 
 ```bash
 git clone --recurse-submodules https://github.com/insper-riscv/Certification.git
-git clone https://github.com/insper-riscv/Core.git      # ao lado
-git clone https://github.com/insper-riscv/Memory.git    # ao lado
-git clone https://github.com/insper-riscv/TopLevel.git  # ao lado
 cd Certification
 uv sync
 riscv-tools --config tools/riscv_build/config.yaml certify
 ```
 
-As ferramentas vêm da imagem `ci-act4` do repositório [Infra](https://github.com/insper-riscv/Infra): GCC RISC-V, Spike, Sail, GHDL, uv e Ruby com Bundler e as gems do UDB do ACT4. O fluxo completo está em `.github/workflows/certification.yml`. A execução de todos os perfis, com um runner separado por perfil, está em `.github/workflows/certification-profiles.yml`; ela lê os arquivos `tools/riscv_build/config.profile-<nome>.yaml` e aceita, no disparo manual, a ramificação dos repositórios irmãos e uma expressão regular sobre o nome do perfil.
+As ferramentas vêm da imagem `ci-act4` do repositório [Infra](https://github.com/insper-riscv/Infra): GCC RISC-V, Spike, Sail, GHDL, uv e Ruby com Bundler e as gems do UDB do ACT4. O fluxo completo está em `.github/workflows/certification.yml`. A execução de todos os perfis, com um runner separado por perfil, está em `.github/workflows/certification-profiles.yml`; ela lê os arquivos `tools/riscv_build/config.profile-<nome>.yaml` e `tools/riscv_build/config.flash-<nome>.yaml` e aceita, no disparo manual, uma expressão regular sobre o nome do perfil.
 
 ---
 

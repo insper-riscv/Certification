@@ -1,12 +1,11 @@
-"""cocotb testbench for ACT4 certification ELFs that run from the SDRAM (rv32im-sdram).
+"""cocotb testbench for ACT4 certification ELFs that run behind the caches (the external model of the modular platform).
 
-The platform simulation (core, instruction cache, SDRAM controller and chip model) starts with the
-ELF already in the chip, as if the host had loaded it through the debug port, and the boot ROM
-jumps to the first instruction. The test signals its end through the HTIF `tohost` word, which is
-a word of the SDRAM chip: the testbench reads it from the chip model through the word debug port
-(the same view the host has), a PASS being 1 and any other odd value a FAIL.
+The platform simulation (core, instruction and data cache, FLASH and RAM chips) starts with the ELF already in
+the chips, as if the host had loaded it, and the boot ROM jumps to the first instruction. The test signals its
+end through the HTIF `tohost` word, which is a word of the RAM chip: the testbench reads it from the chip
+model through the word debug port (the same view the host has), a PASS being 1 and any other odd value a FAIL.
 
-Must stay in sync with ../rv32im-sdram/link.ld: the region ends at 0x400FFFE0, where tohost sits.
+Must stay in sync with ../rv32im-min/link.ld: the RAM starts at 0x00100000 and ends at 0x001FFFE0, where tohost sits.
 """
 
 import os
@@ -15,16 +14,16 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, RisingEdge, Timer
 
-SDRAM_BASE = 0x40000000
-TOHOST_ADDR = 0x400FFFE0
+RAM_BASE = 0x00100000
+TOHOST_ADDR = 0x001FFFE0
 TOHOST_PASS = 1
 POLL_CYCLES = 200
 TIMEOUT_CYCLES = 8_000_000
 
 
 async def read_word(dut, address: int) -> int:
-    """The 32-bit word at an address of the SDRAM chip model."""
-    dut.DBG_WORD_ADDR.value = (address - SDRAM_BASE) // 4
+    """The 32-bit word at an address of the RAM chip model."""
+    dut.DBG_WORD_ADDR.value = (address - RAM_BASE) // 4
     for _ in range(3):
         await RisingEdge(dut.CLK_MEM)
     await Timer(1, unit="ns")
