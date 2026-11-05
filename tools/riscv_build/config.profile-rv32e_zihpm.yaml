@@ -1,0 +1,22 @@
+# The ACT4 track of the profile rv32e_zihpm on the modular platform with the memories inside the chip:
+# config.modular.yaml with the target, the extensions and the hardware of the profile.
+#
+#   uv run riscv-tools --config tools/riscv_build/config.profile-rv32e_zihpm.yaml certify
+extends: config.modular.yaml
+
+isa:
+  base: e
+
+sim:
+  parameters:
+    HAS_E: "true"
+    HAS_ZICSR: "true"
+    HAS_ZICCLSM: "false"
+    HAS_ZICNTR: "false"
+    HAS_ZIHPM: "true"
+    HAS_M: "false"
+    HAS_ZMMUL: "false"
+
+act:
+  target_config: tools/riscv_build/act/profile-rv32e_zihpm/test_config.yaml
+  extensions: "E,Zicsr,Zihpm"

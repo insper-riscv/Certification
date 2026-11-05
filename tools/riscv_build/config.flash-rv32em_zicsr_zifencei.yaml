@@ -1,0 +1,36 @@
+# The ACT4 track of flash-rv32em_zicsr_zifencei on the modular platform with the ROM and the RAM behind the caches: the
+# platform (config.modular.yaml) with the target, the extensions and the hardware of the profile.
+#
+#   uv run riscv-tools --config tools/riscv_build/config.flash-rv32em_zicsr_zifencei.yaml certify
+extends: config.modular.yaml
+
+isa:
+  base: e
+
+sim:
+  parameters:
+    BOOT_ROM_FILE: "{hex_path}"
+    ROM_FILE: "{hex_path}"
+    RAM_FILE: "{sdram_hex_path}"
+    ROM_EXTERNAL: "true"
+    RAM_EXTERNAL: "true"
+    HAS_E: "true"
+    HAS_ZICSR: "true"
+    HAS_ZICCLSM: "false"
+    HAS_ZICNTR: "false"
+    HAS_ZIHPM: "false"
+    HAS_M: "true"
+    HAS_ZMMUL: "false"
+    HAS_ZIFENCEI: "true"
+
+act:
+  target_config: tools/riscv_build/act/flash-rv32em_zicsr_zifencei/test_config.yaml
+  extensions: "E,M,Zmmul,Zicsr,Zifencei"
+  # tests that rewrite their own code run from the variant, with the body in the RAM
+  ram_tests: [Zifencei-fence.i-00]
+  ram_target_config: tools/riscv_build/act/flash-ram-rv32em_zicsr_zifencei/test_config.yaml
+  ram_extensions: "Zifencei"
+  # The code is in the ROM, behind the instruction cache, and the data in the RAM, behind the data cache; the
+  # images start at the address 0 of the ROM (the boot ROM stub is in the first 4 KB) and at the base of the RAM.
+  flash_base: 0x0
+  sdram_base: 0x100000
