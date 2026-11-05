@@ -50,6 +50,9 @@ jobs:
           uv run python tools/riscv_build/gen_flash_profiles.py
           test -z "$(git status --porcelain -- tools/riscv_build)" || { git status --short -- tools/riscv_build; echo "regenerate the profiles and commit them"; exit 1; }
 
+      - name: Check the VHDL style
+        run: riscv-tools --root . check-vhdl-style
+
       - name: Install Python dependencies (cocotb; riscv-tools comes from the image)
         run: uv sync
 
