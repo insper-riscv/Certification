@@ -33,37 +33,48 @@ entity act_modular_top is
     -- Extensões do perfil.
     -- RV32E (16 registradores) no lugar do RV32I.
     has_e         : boolean := false;
+    -- Inclui a extensão Zicsr.
     has_zicsr     : boolean := false;
+    -- Inclui a extensão Zicntr.
     has_zicntr    : boolean := false;
+    -- Inclui a extensão Zihpm.
     has_zihpm     : boolean := false;
+    -- Inclui a extensão M completa.
     has_m         : boolean := false;
+    -- Inclui a extensão Zmmul.
     has_zmmul     : boolean := false;
+    -- Inclui a extensão Zifencei.
     has_zifencei  : boolean := false;
+    -- Inclui a extensão Zicclsm.
     has_zicclsm   : boolean := false
   );
   port (
     -- Clock do núcleo.
-    CLK            : in  std_logic;
+    i_clk            : in  std_logic;
     -- Clock do chip externo; a plataforma modular usa um só clock, então fica sem uso.
-    CLK_MEM        : in  std_logic := '0';
+    i_clk_mem        : in  std_logic := '0';
     -- Reset, ativo em '1'.
-    reset          : in  std_logic := '0';
+    i_rst            : in  std_logic := '0';
     -- Índice da palavra do chip de RAM que a porta de depuração lê.
-    DBG_WORD_ADDR  : in  std_logic_vector(23 downto 0) := (others => '0');
-    -- Palavra do chip de RAM no índice de DBG_WORD_ADDR.
-    DBG_WORD_DATA  : out std_logic_vector(31 downto 0);
-    -- Barramento de dados da RAM interna do núcleo.
-    ram_en         : out std_logic;
-    ram_wren       : out std_logic;
-    ram_addr       : out std_logic_vector(31 downto 0);
-    ram_wdata      : out std_logic_vector(31 downto 0);
-    ram_byteena    : out std_logic_vector(3 downto 0)
+    i_dbg_word_addr  : in  std_logic_vector(23 downto 0) := (others => '0');
+    -- Palavra do chip de RAM no índice de i_dbg_word_addr.
+    o_dbg_word_data  : out std_logic_vector(31 downto 0);
+    -- Acesso à RAM interna do núcleo.
+    o_ram_en         : out std_logic;
+    -- Habilita a escrita na RAM.
+    o_ram_wren       : out std_logic;
+    -- Endereço do acesso à RAM.
+    o_ram_addr       : out std_logic_vector(31 downto 0);
+    -- Dado a escrever na RAM.
+    o_ram_wdata      : out std_logic_vector(31 downto 0);
+    -- Habilitação de bytes da escrita na RAM.
+    o_ram_byteena    : out std_logic_vector(3 downto 0)
   );
 end entity act_modular_top;
 
 architecture structural of act_modular_top is
 begin
-  top_inst : entity work.modular_sim_top
+  u_top : entity work.modular_sim_top
     generic map (
       boot_rom_file       => boot_rom_file,
       rom_file            => rom_file,
@@ -83,14 +94,14 @@ begin
       has_zicclsm         => has_zicclsm
     )
     port map (
-      i_clk           => CLK,
-      i_rst           => reset,
-      i_dbg_word_addr => DBG_WORD_ADDR,
-      o_dbg_word_data => DBG_WORD_DATA,
-      o_ram_en        => ram_en,
-      o_ram_wren      => ram_wren,
-      o_ram_addr      => ram_addr,
-      o_ram_wdata     => ram_wdata,
-      o_ram_byteena   => ram_byteena
+      i_clk           => i_clk,
+      i_rst           => i_rst,
+      i_dbg_word_addr => i_dbg_word_addr,
+      o_dbg_word_data => o_dbg_word_data,
+      o_ram_en        => o_ram_en,
+      o_ram_wren      => o_ram_wren,
+      o_ram_addr      => o_ram_addr,
+      o_ram_wdata     => o_ram_wdata,
+      o_ram_byteena   => o_ram_byteena
     );
 end architecture structural;
