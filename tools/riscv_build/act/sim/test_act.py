@@ -35,24 +35,24 @@ async def test_program(dut) -> None:
     test_name = os.environ.get("TEST_NAME", "?")
     dut._log.info(f"running {test_name}")
 
-    cocotb.start_soon(Clock(dut.CLK, 10, unit="ns").start())
+    cocotb.start_soon(Clock(dut.i_clk, 10, unit="ns").start())
 
     cycles_used = 0
     console_bytes = bytearray()
 
-    dut.reset.value = 1
-    await ClockCycles(dut.CLK, 5)
-    dut.reset.value = 0
+    dut.i_rst.value = 1
+    await ClockCycles(dut.i_clk, 5)
+    dut.i_rst.value = 0
 
     for _ in range(TIMEOUT_CYCLES):
-        await RisingEdge(dut.CLK)
+        await RisingEdge(dut.i_clk)
         cycles_used += 1
 
-        if dut.ram_wren.value != 1 or dut.ram_en.value != 1:
+        if dut.o_ram_wren.value != 1 or dut.o_ram_en.value != 1:
             continue
 
-        addr = int(dut.ram_addr.value)
-        data = int(dut.ram_wdata.value)
+        addr = int(dut.o_ram_addr.value)
+        data = int(dut.o_ram_wdata.value)
 
         if addr == CONSOLE_ADDR:
             byte = data & 0xFF

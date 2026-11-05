@@ -23,11 +23,11 @@ TIMEOUT_CYCLES = 8_000_000
 
 async def read_word(dut, address: int) -> int:
     """The 32-bit word at an address of the RAM chip model."""
-    dut.DBG_WORD_ADDR.value = (address - RAM_BASE) // 4
+    dut.i_dbg_word_addr.value = (address - RAM_BASE) // 4
     for _ in range(3):
-        await RisingEdge(dut.CLK_MEM)
+        await RisingEdge(dut.i_clk_mem)
     await Timer(1, unit="ns")
-    return int(dut.DBG_WORD_DATA.value)
+    return int(dut.o_dbg_word_data.value)
 
 
 @cocotb.test()
@@ -35,15 +35,15 @@ async def test_program(dut) -> None:
     test_name = os.environ.get("TEST_NAME", "?")
     dut._log.info(f"running {test_name}")
 
-    cocotb.start_soon(Clock(dut.CLK, 10, unit="ns").start())
-    cocotb.start_soon(Clock(dut.CLK_MEM, 7, unit="ns").start())
-    dut.reset.value = 1
-    await ClockCycles(dut.CLK, 5)
-    dut.reset.value = 0
+    cocotb.start_soon(Clock(dut.i_clk, 10, unit="ns").start())
+    cocotb.start_soon(Clock(dut.i_clk_mem, 7, unit="ns").start())
+    dut.i_rst.value = 1
+    await ClockCycles(dut.i_clk, 5)
+    dut.i_rst.value = 0
 
     cycles = 0
     while cycles < TIMEOUT_CYCLES:
-        await ClockCycles(dut.CLK, POLL_CYCLES)
+        await ClockCycles(dut.i_clk, POLL_CYCLES)
         cycles += POLL_CYCLES
         tohost = await read_word(dut, TOHOST_ADDR)
         if tohost & 1:
