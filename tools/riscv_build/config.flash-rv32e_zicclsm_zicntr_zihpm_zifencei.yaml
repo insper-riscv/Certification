@@ -26,10 +26,6 @@ sim:
 act:
   target_config: tools/riscv_build/act/flash-rv32e_zicclsm_zicntr_zihpm_zifencei/test_config.yaml
   extensions: "E,Zicsr,Zicntr,Zihpm,Zifencei,Zicclsm"
-  # tests that rewrite their own code run from the variant, with the body in the RAM
-  ram_tests: [Zifencei-fence.i-00]
-  ram_target_config: tools/riscv_build/act/flash-ram-rv32e_zicclsm_zicntr_zihpm_zifencei/test_config.yaml
-  ram_extensions: "Zifencei"
   # The code is in the ROM, behind the instruction cache, and the data in the RAM, behind the data cache; the
   # images start at the address 0 of the ROM (the boot ROM stub is in the first 4 KB) and at the base of the RAM.
   flash_base: 0x0

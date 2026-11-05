@@ -25,6 +25,7 @@ template = rb / "act/rv32im-min"
 
 
 def sim_config(target: str, extensions: str, params: str, ram_variant: bool, rtgt: str, e_base: bool) -> str:
+    # ram_variant: the config of the variant itself, or of a target that needs none (RV32E)
     """Escreve o config de simulação de um alvo na plataforma modular com a ROM e a RAM atrás das caches."""
     ram_lines = "" if ram_variant else (
         "  # tests that rewrite their own code run from the variant, with the body in the RAM\n"
@@ -71,7 +72,10 @@ for name, ext in variants(root):
     exts = ",".join(extension_list(ext, name))
     params = parameter_lines(ext, name)
 
-    for target, linker in ((tgt, "link.ld"), (rtgt, "link-ram.ld")):
+    # ACT4 has no Zifencei test for the RV32E base (tests/rv32e has no Zifencei folder), so an E profile
+    # needs no variant with the body of the test in the RAM.
+    e_base = is_e(name)
+    for target, linker in (((tgt, "link.ld"),) if e_base else ((tgt, "link.ld"), (rtgt, "link-ram.ld"))):
         dst = rb / "act" / target
         if dst.exists():
             shutil.rmtree(dst)
@@ -83,6 +87,7 @@ for name, ext in variants(root):
             if f.exists():
                 f.write_text(f.read_text().replace(f"profile-{name}", target))
 
-    (rb / f"config.{tgt}.yaml").write_text(sim_config(tgt, exts, params, False, rtgt, is_e(name)))
-    (rb / f"config.{rtgt}.yaml").write_text(sim_config(rtgt, "Zifencei", params, True, rtgt, is_e(name)))
+    (rb / f"config.{tgt}.yaml").write_text(sim_config(tgt, exts, params, e_base, rtgt, e_base))
+    if not e_base:
+        (rb / f"config.{rtgt}.yaml").write_text(sim_config(rtgt, "Zifencei", params, True, rtgt, e_base))
     print(name, "->", tgt)
