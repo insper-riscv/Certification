@@ -1,0 +1,1 @@
+sail_riscv_sim --config tools/riscv_build/act/flash-rv32e_zicclsm_zicntr_zifencei_zmmul/sail.json
