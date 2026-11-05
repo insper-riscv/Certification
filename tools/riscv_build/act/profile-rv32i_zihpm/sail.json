@@ -101,14 +101,19 @@
       "pmpcfg_write_only": "PMP_ClearPermissions",
       "xenvcfg_cbie": "Xenvcfg_ClearPermissions",
       "xtvec_mode": "Xtvec_Ignore",
-      "rv32zdinx_odd_register": "Zdinx_Illegal"
+      "rv32zdinx_odd_register": "Zdinx_Illegal",
+      "illegal_privilege": "IllegalPriv_Lowest"
     },
     "mstatus": {
       "fs_legal_states": "ExtContext_Off",
       "vs_legal_states": "ExtContext_Off"
     },
     "privileged_isa_version": "Privileged_ISA_1_11",
-    "misa_implemented": true
+    "misa_implemented": true,
+    "misa": {
+      "implemented": true,
+      "has_non_standard_extensions": false
+    }
   },
   "memory": {
     "physaddr_bits": 32,
@@ -156,7 +161,7 @@
         },
         "size": {
           "len": 64,
-          "value": "0x600000"
+          "value": "0x200000"
         },
         "attributes": {
           "mem_type": "MainMemory",
@@ -685,7 +690,8 @@
         "P1P13": "CSRBit_ReadOnlyZero",
         "SRMCFG": "CSRBit_ReadOnlyZero",
         "FCSR": "CSRBit_ReadOnlyZero",
-        "C": "CSRBit_ReadOnlyZero"
+        "C": "CSRBit_ReadOnlyZero",
+        "CSRIND": "CSRBit_ReadOnlyZero"
       },
       "mstateen1": {
         "SE1": "CSRBit_Writable"
@@ -700,7 +706,8 @@
         "ENVCFG": "CSRBit_ReadOnlyZero",
         "CONTEXT": "CSRBit_ReadOnlyZero",
         "FCSR": "CSRBit_ReadOnlyZero",
-        "C": "CSRBit_ReadOnlyZero"
+        "C": "CSRBit_ReadOnlyZero",
+        "CSRIND": "CSRBit_ReadOnlyZero"
       },
       "sstateen0": {
         "FCSR": "CSRBit_ReadOnlyZero",
@@ -800,6 +807,14 @@
     },
     "Shlcofideleg": {
       "supported": false
+    },
+    "Sscsrind": {
+      "supported": false,
+      "siselectlen": 12
+    },
+    "Smcsrind": {
+      "supported": false,
+      "miselectlen": 12
     }
   }
 }

@@ -1,25 +1,26 @@
-/* Linker script of the ACT4 target of rv32im_pipeline_core.
+/* Linker script of the ACT4 target of the modular simulation platform (Insper-RISC-V, src/simulation/modular).
  *
- * The core fetches instructions from a ROM and reads and writes data in a RAM, two separate
- * memories. Every section is loaded at the address it runs from, so the same ELF is a valid
- * program for the Sail model (one flat memory that covers both regions) and for the core, whose
- * simulation loads the instruction region into the ROM and the data region into the RAM.
+ * The map is the one of the platform: a 4 KB boot ROM at the start, the ROM right after it up to 1 MB, and a
+ * 1 MB RAM from 0x00100000. The core fetches the code of the test from the ROM and keeps the data in the RAM.
+ * Every section is loaded at the address it runs from, so the same ELF is a valid program for the Sail model
+ * (one flat memory that covers both regions) and for the core, whose simulation loads the first 4 KB into the
+ * boot ROM, the code region into the ROM and the data region into the RAM.
  *
- * The map is the one in sail.json (memory.regions) and in the testbench:
- *
- *   0x00000000  ROM, 4 MB   code of the test and of the model macros
- *   0x00400000  RAM, 2 MB   .rodata, .data, .bss, the stack
- *   0x005FFFE0  end of the RAM proper; the last 32 bytes hold, outside the RAM region of the
+ *   0x00000000  boot ROM, 4 KB   the stub that jumps to the first instruction of the test (RVMODEL_DATA_SECTION)
+ *   0x00001000  ROM, 1 MB - 4 KB code of the test and of the model macros
+ *   0x00100000  RAM, 1 MB        .rodata, .data, .bss, the stack
+ *   0x001FFFE0  end of the RAM proper; the last 32 bytes hold, outside the RAM region of the
  *               linker (so the sections of the test never reach them):
- *                 0x005FFFE0  tohost     (8 bytes, HTIF)
- *                 0x005FFFE8  fromhost   (8 bytes, HTIF)
- *                 0x005FFFF0  console    (4 bytes, one character per store)
+ *                 0x001FFFE0  tohost     (8 bytes, HTIF)
+ *                 0x001FFFE8  fromhost   (8 bytes, HTIF)
+ *                 0x001FFFF0  console    (4 bytes, one character per store)
  */
 
 MEMORY
 {
-  rom (rx) : ORIGIN = 0x00000000, LENGTH = 4M
-  ram (rw) : ORIGIN = 0x00400000, LENGTH = 2M - 32
+  boot (rx) : ORIGIN = 0x00000000, LENGTH = 4K
+  rom (rx)  : ORIGIN = 0x00001000, LENGTH = 1M - 4K
+  ram (rw)  : ORIGIN = 0x00100000, LENGTH = 1M - 32
 }
 
 TEST_BASE = ORIGIN(rom);
@@ -34,6 +35,8 @@ PROVIDE(__num_harts = NUM_HARTS);
 
 SECTIONS
 {
+  .text.boot ORIGIN(boot) : { KEEP(*(.text.boot)) } > boot
+
   .text.init   TEST_BASE : { *(.text.init) } > rom
   .text.rvtest . : { *(.text.rvtest) *(.text.rvtest.*) } > rom
   .text.rvmodel . : { *(.text.rvmodel) *(.text.rvmodel.*) *(.text) *(.text.*) } > rom

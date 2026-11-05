@@ -28,10 +28,21 @@
 #define SAIL_CLINT_BASE_ADDRESS 0x2000000
 #define SAIL_SIMPLE_INTERRUPT_GENERATOR_BASE_ADDRESS 0xC000000
 
+# The data section also carries the code of the boot ROM (link.ld puts .text.boot at address 0): the core
+# does not execute the first word after the reset, then the stub jumps to the first instruction of the test
+# at 0x1000. The simulation loads the first 4 KB of the ELF into the boot ROM.
 #define RVMODEL_DATA_SECTION \
         .pushsection .tohost,"aw",@progbits;                \
         .balign 8; .global tohost; tohost: .dword 0;         \
         .balign 8; .global fromhost; fromhost: .dword 0;     \
+        .popsection;                                         \
+        .pushsection .text.boot,"ax",@progbits;              \
+        .option push;                                        \
+        .option norvc;                                       \
+        nop;                                                 \
+        lui x1, 1;                                           \
+        jalr x0, 0(x1);                                      \
+        .option pop;                                         \
         .popsection
 
 ##### STARTUP #####
@@ -55,19 +66,17 @@
 
 ##### TERMINATION #####
 
-# tohost HTIF encoding: 1 = pass, 3 = fail ((1 << 1) | 1). After writing it the test jumps to
-# rv32_wait_restart, the routine of the boot ROM (fixed at 0x100) that parks the core until the
-# host sets the go flag again; a self loop in the ELF would keep the core from ever restarting.
-#define BOOT_ROM_WAIT_RESTART 0x100
-
+# Same tohost HTIF encoding this project's OWN crt0.S already writes
+# on every test's completion (rv32_wait_restart: "1 = pass, 3 = fail
+# ((1 << 1) | 1)") — not a new convention, just reused here.
 #define RVMODEL_HALT_PASS  \
   li x1, 1                ;\
   la t0, tohost           ;\
   write_tohost_pass:      ;\
     sw x1, 0(t0)          ;\
     sw x0, 4(t0)          ;\
-  li t1, BOOT_ROM_WAIT_RESTART ;\
-  jr t1                   ;\
+  self_loop_pass:         ;\
+    j self_loop_pass      ;\
 
 #define RVMODEL_HALT_FAIL \
   li x1, 3                ;\
@@ -75,8 +84,8 @@
   write_tohost_fail:      ;\
     sw x1, 0(t0)          ;\
     sw x0, 4(t0)          ;\
-  li t1, BOOT_ROM_WAIT_RESTART ;\
-  jr t1                   ;\
+  self_loop_fail:         ;\
+    j self_loop_fail      ;\
 
 ##### IO #####
 
