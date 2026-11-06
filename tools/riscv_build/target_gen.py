@@ -237,3 +237,112 @@ def write_generated(root: Path, out: Path, name: str, ext: set[str], model: Memo
         f"{place}"
     )
     return config
+
+
+# O mapa da placa DE0-CV: a FLASH de 252 KB a partir de 0x1000 e a SDRAM a partir de 0x40000000, de que o ACT4 usa 1 MB.
+_BOARD_FLASH = (0x1000, 0x3F000)
+_BOARD_SDRAM = (0x40000000, 0x100000)
+
+
+def _board_region(region: dict, base: int, size: int) -> dict:
+    """Devolve uma cópia da região de memória principal do Sail com outro endereço e tamanho."""
+    copy = json.loads(json.dumps(region))
+    copy["base"]["value"] = f"{base:#x}"
+    copy["size"]["value"] = f"{size:#x}"
+    return copy
+
+
+def write_board_target(rb: Path, name: str, ext: set[str], dst: Path, tgt: str, rel: str | None = None, ram_variant: bool = False) -> None:
+    """Escreve o alvo ACT4 de um perfil para o mapa da placa DE0-CV.
+
+    É o alvo da plataforma modular (`write_target`) com três trocas: o linker, que põe o código e as constantes na FLASH
+    (a partir de 0x1200, depois da página de cabeçalho da banca e do payload) e os dados, a pilha e o HTIF na SDRAM em
+    0x40000000; o `rvmodel_macros.h`, que ao terminar salta para a espera de reinício da boot memory; e as regiões de
+    memória do Sail.
+
+    Parameters
+    ----------
+    rb : Path
+        A pasta `tools/riscv_build` do repositório.
+    name, ext, dst, tgt, rel
+        Como em `write_target`.
+    ram_variant : bool
+        Usa o linker da variante em que o corpo do teste fica na SDRAM (os testes que reescrevem o próprio código).
+    """
+    write_target(rb, name, ext, dst, tgt, rel)
+    template = rb / "act" / "board-template"
+    shutil.copyfile(template / ("link-ram.ld" if ram_variant else "link.ld"), dst / "link.ld")
+    (dst / "link-ram.ld").unlink(missing_ok=True)
+    shutil.copyfile(template / "rvmodel_macros.h", dst / "rvmodel_macros.h")
+    sj = json.loads((dst / "sail.json").read_text())
+    main = next(r for r in sj["memory"]["regions"] if r["attributes"]["mem_type"] == "MainMemory")
+    sdram = _board_region(main, *_BOARD_SDRAM)
+    main["base"]["value"] = f"{_BOARD_FLASH[0]:#x}"
+    main["size"]["value"] = f"{_BOARD_FLASH[1]:#x}"
+    sj["memory"]["regions"].append(sdram)
+    (dst / "sail.json").write_text(json.dumps(sj, indent=2))
+
+
+def write_board(root: Path, out: Path, name: str, ext: set[str], jobs: int | None) -> Path:
+    """Gera, sem versionar, o alvo ACT4 de um perfil para a placa DE0-CV e o config do `certify-board`.
+
+    O config estende `config.platform-de0-cv.yaml`, que traz o mapa, o dispositivo JTAG e as portas de depuração, e
+    acrescenta o lado do ACT4: o código vai para a FLASH pela banca A (cabeçalho, payload que salta para
+    `flash_entry` e o código) e os dados para a SDRAM pela porta de depuração. Um perfil com Zifencei roda o
+    `Zifencei-fence.i-00` da variante com o corpo do teste na SDRAM.
+
+    Parameters
+    ----------
+    root, out, name, ext, jobs
+        Como em `write_generated`.
+
+    Returns
+    -------
+    Path
+        O `config.yaml` gerado, para o `riscv-tools --config`.
+    """
+    rb = root / "tools/riscv_build"
+    tgt = f"{name}__board"
+    target = out / "act" / tgt
+    write_board_target(rb, name, ext, target, tgt, _relative(target, root))
+    ram_lines = ""
+    if "Zifencei" in ext:
+        ram = out / "act" / f"{tgt}-ram"
+        write_board_target(rb, name, ext, ram, f"{tgt}-ram", _relative(ram, root), ram_variant=True)
+        ram_lines = (
+            "  # tests that rewrite their own code run from the variant, with the body in the SDRAM\n"
+            "  ram_tests: [Zifencei-fence.i-00]\n"
+            f"  ram_target_config: {_relative(ram / 'test_config.yaml', root)}\n"
+            '  ram_extensions: "Zifencei"\n'
+        )
+    jobs_line = f"  jobs: {jobs}\n" if jobs is not None else ""
+    base = rb / "config.platform-de0-cv.yaml"
+    config = out / "config.yaml"
+    config.write_text(
+        f"# The ACT4 track of {name} on the DE0-CV board, generated at run time by gen_profiles.py --board\n"
+        "# (nothing of this folder is versioned): the platform of the board with the target of the profile.\n"
+        "#\n"
+        f"#   riscv-tools --config {_relative(config, root)} certify-board\n"
+        f"extends: {Path(os.path.relpath(base, out)).as_posix()}\n"
+        "\n"
+        "paths:\n"
+        "  build_dir: build\n"
+        "\n"
+        "act:\n"
+        "  vendor_dir: vendor/riscv-arch-test\n"
+        f"{jobs_line}"
+        f"  target_config: {_relative(target / 'test_config.yaml', root)}\n"
+        f'  extensions: "{",".join(extension_list(ext, name))}"\n'
+        f"{ram_lines}"
+        "  # the bank A (flash.banks of the platform) starts with the header page and the payload that jumps to the entry\n"
+        "  flash_base: 0x1000\n"
+        "  flash_bank: A\n"
+        "  flash_entry: 0x1200\n"
+        "  # the words of the FLASH storage in the FPGA (addressed raw from 0, 256 KB): a larger ELF is reported, not run\n"
+        "  flash_words: 65536\n"
+        "  sdram_base: 0x40000000\n"
+        "  sdram_region_bytes: 0x100000\n"
+        "  board_timeout_s: 30\n"
+        "  board_display: true\n"
+    )
+    return config
