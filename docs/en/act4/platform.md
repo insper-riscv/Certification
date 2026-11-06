@@ -15,11 +15,11 @@ The 120 profiles of the Core matrix (`Insper-RISC-V/Core/profiles/matrix.yaml`) 
 
 | Region | Start | Size |
 | :--- | :--- | :--- |
-| BOOT_ROM | `0x00000000` | 4 KB |
+| BOOT_MEMORY | `0x00000000` | 4 KB |
 | ROM | `0x00001000` | 1 MB minus 4 KB |
 | RAM | `0x00100000` | 1 MB |
 
-The three HTIF words sit at the end of the RAM, at `0x001FFFE0` (`tohost`), `0x001FFFE8` (`fromhost`) and `0x001FFFF0` (console). The ELF of each test loads every section at the address it runs from. The first 4 KB of the ELF are the BOOT_ROM, with a stub that jumps to `0x00001000`, and the rest of the code is the ROM. In the profiles with Zifencei, the `Zifencei-fence.i-00` test rewrites its own code and uses the `flash-ram` variant, with the body of the test in the RAM.
+The three HTIF words sit at the end of the RAM, at `0x001FFFE0` (`tohost`), `0x001FFFE8` (`fromhost`) and `0x001FFFF0` (console). The ELF of each test loads every section at the address it runs from. The first 4 KB of the ELF are the BOOT_MEMORY, with a stub that jumps to `0x00001000`, and the rest of the code is the ROM. In the profiles with Zifencei, the `Zifencei-fence.i-00` test rewrites its own code and uses the `flash-ram` variant, with the body of the test in the RAM.
 
 ## 3. Generated files
 

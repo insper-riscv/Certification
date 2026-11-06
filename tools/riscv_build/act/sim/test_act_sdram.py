@@ -1,7 +1,7 @@
 """cocotb testbench for ACT4 certification ELFs that run behind the caches (the external model of the modular platform).
 
 The platform simulation (core, instruction and data cache, FLASH and RAM chips) starts with the ELF already in
-the chips, as if the host had loaded it, and the boot ROM jumps to the first instruction. The test signals its
+the chips, as if the host had loaded it, and the boot memory jumps to the first instruction. The test signals its
 end through the HTIF `tohost` word, which is a word of the RAM chip: the testbench reads it from the chip
 model through the word debug port (the same view the host has), a PASS being 1 and any other odd value a FAIL.
 

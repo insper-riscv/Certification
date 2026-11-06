@@ -180,18 +180,18 @@ sim:
   ghdl_std: "08"
   # In dependency order, relative to this project's root.
   vhdl_sources:
-{listing}  # The images the harness writes for each ELF: the boot ROM is the first 4 KB of the code, the ROM the
+{listing}  # The images the harness writes for each ELF: the memória de boot is the first 4 KB of the code, the ROM the
   # code region and the RAM the data region.
   parameters:
-    BOOT_ROM_FILE: "{{boot_hex_path}}"
+    BOOT_MEMORY_FILE: "{{boot_hex_path}}"
     ROM_FILE: "{{hex_path}}"
     RAM_FILE: "{{ram_hex_path}}"
 
 act:
   vendor_dir: vendor/riscv-arch-test
   jobs: 0
-  # Where the data region of the ELFs starts (the RAM) and the size of the boot ROM.
+  # Where the data region of the ELFs starts (the RAM) and the size of the memória de boot.
   ram_base: 0x100000
-  boot_rom_bytes: 0x1000
+  boot_memory_bytes: 0x1000
 """
     )

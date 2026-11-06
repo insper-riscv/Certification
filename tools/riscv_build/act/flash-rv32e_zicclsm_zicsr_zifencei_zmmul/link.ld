@@ -1,12 +1,12 @@
 /* Linker script of the ACT4 target of the modular simulation platform (Insper-RISC-V, src/simulation/modular).
  *
- * The map is the one of the platform: a 4 KB boot ROM at the start, the ROM right after it up to 1 MB, and a
+ * The map is the one of the platform: a 4 KB boot memory at the start, the ROM right after it up to 1 MB, and a
  * 1 MB RAM from 0x00100000. The core fetches the code of the test from the ROM and keeps the data in the RAM.
  * Every section is loaded at the address it runs from, so the same ELF is a valid program for the Sail model
  * (one flat memory that covers both regions) and for the core, whose simulation loads the first 4 KB into the
- * boot ROM, the code region into the ROM and the data region into the RAM.
+ * boot memory, the code region into the ROM and the data region into the RAM.
  *
- *   0x00000000  boot ROM, 4 KB   the stub that jumps to the first instruction of the test (RVMODEL_DATA_SECTION)
+ *   0x00000000  boot memory, 4 KB   the stub that jumps to the first instruction of the test (RVMODEL_DATA_SECTION)
  *   0x00001000  ROM, 1 MB - 4 KB code of the test and of the model macros
  *   0x00100000  RAM, 1 MB        .rodata, .data, .bss, the stack
  *   0x001FFFE0  end of the RAM proper; the last 32 bytes hold, outside the RAM region of the
