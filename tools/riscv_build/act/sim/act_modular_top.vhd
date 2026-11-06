@@ -14,8 +14,8 @@ use ieee.std_logic_1164.all;
 
 entity act_modular_top is
   generic (
-    -- Imagem da BOOT_ROM, uma palavra de 32 bits por linha em hexadecimal.
-    boot_rom_file : string  := "default.hex";
+    -- Imagem da BOOT_MEMORY, uma palavra de 32 bits por linha em hexadecimal.
+    boot_memory_file : string  := "default.hex";
     -- Imagem da ROM, a partir do endereço 0.
     rom_file      : string  := "default.hex";
     -- Imagem da RAM, a partir da sua base.
@@ -84,7 +84,7 @@ architecture structural of act_modular_top is
 begin
   u_top : entity work.modular_sim_top
     generic map (
-      boot_rom_file       => boot_rom_file,
+      boot_memory_file       => boot_memory_file,
       rom_file            => rom_file,
       ram_file            => ram_file,
       rom_external        => rom_external,

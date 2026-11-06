@@ -28,9 +28,9 @@
 #define SAIL_CLINT_BASE_ADDRESS 0x2000000
 #define SAIL_SIMPLE_INTERRUPT_GENERATOR_BASE_ADDRESS 0xC000000
 
-# The data section also carries the code of the boot ROM (link.ld puts .text.boot at address 0): the core
+# The data section also carries the code of the boot memory (link.ld puts .text.boot at address 0): the core
 # does not execute the first word after the reset, then the stub jumps to the first instruction of the test
-# at 0x1000. The simulation loads the first 4 KB of the ELF into the boot ROM.
+# at 0x1000. The simulation loads the first 4 KB of the ELF into the boot memory.
 #define RVMODEL_DATA_SECTION \
         .pushsection .tohost,"aw",@progbits;                \
         .balign 8; .global tohost; tohost: .dword 0;         \

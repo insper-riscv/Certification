@@ -1,7 +1,7 @@
 """Escreve o alvo ACT4 de um perfil: o UDB, a configuração do Sail, o test_config e o config do `certify`.
 
 O alvo de um perfil (UDB, `sail.json`, `test_config.yaml` e o linker) não depende do modelo de memória: o mapa
-é o mesmo (BOOT_ROM, ROM e RAM de 1 MB) e a ROM e a RAM só mudam de lugar dentro do chip simulado. O que muda
+é o mesmo (BOOT_MEMORY, ROM e RAM de 1 MB) e a ROM e a RAM só mudam de lugar dentro do chip simulado. O que muda
 com o modelo de memória é o config do `certify`: os genéricos `ROM_EXTERNAL` e `RAM_EXTERNAL` e a forma das
 imagens e do testbench. `gen_profiles.py` e `gen_flash_profiles.py` usam estas funções para os configs
 versionados, e `gen_profiles.py --profile P --memory Y --out DIR` para um alvo gerado em tempo de execução.
@@ -204,7 +204,7 @@ def write_generated(root: Path, out: Path, name: str, ext: set[str], model: Memo
     if model.ram_external:
         # the chip of the RAM holds the data image, and the testbench reads the tohost word from it
         images = (
-            '    BOOT_ROM_FILE: "{hex_path}"\n'
+            '    BOOT_MEMORY_FILE: "{hex_path}"\n'
             '    ROM_FILE: "{hex_path}"\n'
             '    RAM_FILE: "{sdram_hex_path}"\n'
         )
