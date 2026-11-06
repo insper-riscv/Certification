@@ -8,6 +8,11 @@ name: certification (ACT4, all profiles and memory models)
 # publication of the images of the Infra. The pairs left out (a cache over an internal memory, a memory
 # without its cache, Zifencei without both memories external) and the reason of each are printed by the job
 # "plan". To certify one pair, use the workflow "certification (ACT4, one profile and memory model)".
+#
+# The tests, the Ruby gems of the UDB and the `make` of ACT4 are the ones of the ci-act4 image, all of the same ACT4
+# commit, which every job records in its summary and in its result. When every pair passes, the job "release"
+# publishes a release titled with the date and the time (UTC), with the profiles tested, the memory models used
+# and the logs attached.
 on:
   workflow_dispatch:
     inputs:
@@ -104,6 +109,9 @@ jobs:
           git submodule update --init Insper-RISC-V
           git -C Insper-RISC-V submodule update --init Core
 
+      - name: Record the ACT4 commit of the image
+        run: echo "ACT4 commit of the image (tests, gems and make) - $(uv run python tools/riscv_build/act_result.py commit)" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Print and write the matrix
         id: matrix
         env:
@@ -117,8 +125,8 @@ jobs:
   act4:
     needs: plan
     # ACT4 tests run entirely under cocotb/GHDL, never on the FPGA, in the ci-act4 image: it carries the RISC-V
-    # GCC, the Sail model that is ACT4's reference, and Ruby, Bundler and the UDB gems of the ACT4 commit this
-    # repository pins. The VHDL is the one of the Insper-RISC-V submodule.
+    # GCC, the Sail model that is ACT4's reference, and the checkout of ACT4 with its Ruby gems, all of one commit.
+    # The VHDL is the one of the Insper-RISC-V submodule.
     name: ${{ matrix.profile }} / ${{ matrix.slug }}
     runs-on: ubuntu-26.04
     timeout-minutes: 120
@@ -135,6 +143,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Record the ACT4 commit of the image
+        run: echo "ACT4 commit of the image (tests, gems and make) - $(uv run python tools/riscv_build/act_result.py commit)" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Install Python dependencies (cocotb and PyYAML; riscv-tools comes from the image)
         run: uv sync
 
@@ -148,14 +159,67 @@ jobs:
           case "$PROFILE" in rv32e*) sh tools/riscv_build/install_udb_overlay.sh ;; esac
 
       - name: Run the ACT4 certification of the pair (build + cocotb/GHDL)
+        id: certify
         run: riscv-tools --config build/target/config.yaml certify
 
-      - name: Upload the log and the waveforms
+      - name: Collect the verdict of each ELF, the log and the list of tests
+        if: ${{ always() && steps.certify.outcome != 'skipped' }}
+        env:
+          PROFILE: ${{ matrix.profile }}
+          MEMORY: ${{ matrix.memory }}
+        run: uv run python tools/riscv_build/act_result.py collect --profile "$PROFILE" --memory "$MEMORY" --out build/act4-result
+
+      - name: Upload the result of the pair
+        if: ${{ always() && steps.certify.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: act4-result-${{ matrix.profile }}-${{ matrix.slug }}
+          path: build/act4-result
+          if-no-files-found: ignore
+
+      - name: Upload the waveforms
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: act4-${{ matrix.profile }}-${{ matrix.slug }}
-          path: |
-            logs/certification/latest.log
-            **/*.ghw
+          name: act4-ghw-${{ matrix.profile }}-${{ matrix.slug }}
+          path: "**/*.ghw"
           if-no-files-found: ignore
+
+  release:
+    # Publishes a release titled with the date and the time (UTC) when every pair passed, with the profiles
+    # tested, the ELFs per module, the memory combination of each pair and the logs attached. The script refuses a
+    # result with an ELF that did not pass, so a failed pair never becomes a release.
+    needs: [plan, act4]
+    if: ${{ success() }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download the results of this run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" --pattern 'act4-result-*' --dir results
+
+      - name: Assemble the title, the notes, the tag and the logs (nothing is written if a pair failed)
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          MATRIX: ${{ needs.plan.outputs.matrix }}
+        run: |
+          args=(--results results --out release --mode manual --kind matrix
+            --cert-commit "$GITHUB_SHA" --riscv-commit "$(git rev-parse HEAD:Insper-RISC-V)"
+            --datetime "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --run-url "$RUN_URL" --matrix "$MATRIX")
+          python3 tools/riscv_build/release_notes.py "${args[@]}"
+
+      - name: Create the release with the logs of the certification attached
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mapfile -t logs < release/attachments.txt
+          gh release create "$(cat release/tag.txt)" "${logs[@]}" \
+            --target "$GITHUB_SHA" --title "$(cat release/title.txt)" --notes-file release/notes.md --latest=false
+          echo "Release $(cat release/tag.txt) - $(cat release/title.txt)" >> "$GITHUB_STEP_SUMMARY"
