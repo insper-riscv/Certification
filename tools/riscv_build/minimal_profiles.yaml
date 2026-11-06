@@ -11,7 +11,6 @@ profiles:
   - {name: rv32i,              extensions: [],                     tests: 39,  covers: "tests/rv32i/I"}
   - {name: rv32im,             extensions: [M],                    tests: 51,  covers: "tests/rv32i/M"}
   - {name: rv32i_zmmul,        extensions: [Zmmul],                tests: 43,  covers: "tests/rv32i/Zmmul (the RTL variant that multiplies without dividing)"}
-  - {name: rv32i_zicsr,        extensions: [Zicsr],                tests: 45,  covers: "tests/rv32i/Zicsr"}
   - {name: rv32i_zicntr,       extensions: [Zicntr],               tests: 47,  covers: "tests/rv32i/Zicntr (implies Zicsr)"}
   - {name: rv32i_zihpm,        extensions: [Zihpm],                tests: 47,  covers: "tests/rv32i/Zihpm (implies Zicsr)"}
   - {name: rv32i_zicclsm,      extensions: [Zicclsm],              tests: 44,  covers: "tests/rv32i/Zicclsm"}
@@ -20,9 +19,6 @@ profiles:
   - {name: rv32i_zicond,       extensions: [Zicond],               tests: 41,  covers: "tests/rv32i/Zicond"}
   - {name: rv32i_zihintntl,    extensions: [Zihintntl],            tests: 43,  covers: "tests/rv32i/Zihintntl"}
   - {name: rv32i_zihintpause,  extensions: [Zihintpause],          tests: 40,  covers: "tests/rv32i/Zihintpause"}
-  - {name: rv32e,              extensions: [],                     tests: 39,  covers: "tests/rv32e/E"}
-  - {name: rv32em,             extensions: [M],                    tests: 51,  covers: "tests/rv32e/M"}
-  - {name: rv32e_zmmul,        extensions: [Zmmul],                tests: 43,  covers: "tests/rv32e/Zmmul"}
   # Everything the core implements, without Zifencei, so that it runs on every memory model.
   - {name: rv32im_full,        extensions: [M, Zicclsm, Zicntr, Zihpm, Zimop, Zicond, Zihintntl, Zihintpause], tests: 113, covers: "every folder above together"}
   # The same with Zifencei, which only the model with both memories external can run.

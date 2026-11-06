@@ -1,0 +1,102 @@
+name: certification (ACT4, one profile and memory model)
+
+# Manual: certifies ONE profile on ONE memory model. The profile is a name of the matrix of the Core (for example
+# rv32im_zicclsm_zicntr_zihpm) or of tools/riscv_build/minimal_profiles.yaml (for example rv32i_zimop). The
+# memory model is one of the four the modular top accepts, written in the --memory syntax of riscv-tools; a
+# profile that cannot use the model (Zifencei needs both memories external) is refused with the reason. The target
+# is generated at run time by tools/riscv_build/gen_profiles.py and nothing is committed. To certify every
+# profile, use the workflow "certification (ACT4, all profiles and memory models)", which asks for a key.
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Name of the profile, for example rv32im_zicclsm_zicntr_zihpm or rv32i_zimop"
+        required: true
+      memory:
+        description: "Memory model (--memory syntax of riscv-tools)"
+        type: choice
+        options:
+          - rom=int,ram=int,icache=off,dcache=off
+          - rom=int,ram=ext,icache=off,dcache=on
+          - rom=ext,ram=int,icache=on,dcache=off
+          - rom=ext,ram=ext,icache=on,dcache=on
+        default: rom=ext,ram=ext,icache=on,dcache=on
+      target:
+        description: "simulated runs in GHDL on a GitHub runner; real runs on the DE0-CV board (self-hosted runner, not configured yet)"
+        type: choice
+        options: [simulated, real]
+        default: simulated
+      jobs:
+        description: "Workers of the ACT4 make (act.jobs, JOBS= of the make; 0 is automatic)"
+        required: false
+        default: "4"
+
+concurrency:
+  group: certification-profile-${{ github.ref }}-${{ inputs.profile }}-${{ inputs.memory }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  act4:
+    name: ${{ inputs.profile }} / ${{ inputs.memory }}
+    # ACT4 tests run entirely under cocotb/GHDL, never on the FPGA, in the ci-act4 image.
+    runs-on: ubuntu-26.04
+    timeout-minutes: 120
+    container:
+      image: ghcr.io/insper-riscv/ci-act4:latest
+
+    steps:
+      - name: Check the inputs
+        env:
+          PROFILE: ${{ inputs.profile }}
+          MEMORY: ${{ inputs.memory }}
+          TARGET: ${{ inputs.target }}
+          JOBS: ${{ inputs.jobs }}
+        run: |
+          if [ "$TARGET" = "real" ]; then
+            echo "::error::target=real needs a self-hosted runner with the DE0-CV board, which is not configured yet; use target=simulated"
+            exit 1
+          fi
+          [ "$TARGET" = "simulated" ] || { echo "::error::target must be simulated or real"; exit 1; }
+          printf '%s' "$PROFILE" | grep -Eq '^[A-Za-z0-9_]{1,80}$' || { echo "::error::'$PROFILE' is not a profile name"; exit 1; }
+          printf '%s' "$MEMORY" | grep -Eq '^rom=(int|ext),ram=(int|ext),icache=(on|off),dcache=(on|off)$' || { echo "::error::memory is not a valid model"; exit 1; }
+          printf '%s' "$JOBS" | grep -Eq '^[0-9]{1,2}$' || { echo "::error::jobs must be a number from 0 to 64"; exit 1; }
+          [ "$JOBS" -le 64 ] || { echo "::error::jobs must be a number from 0 to 64"; exit 1; }
+
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Install Python dependencies (cocotb and PyYAML; riscv-tools comes from the image)
+        run: uv sync
+
+      - name: Print the pair (and refuse a model the profile cannot use)
+        env:
+          PROFILE: ${{ inputs.profile }}
+          MEMORY: ${{ inputs.memory }}
+        run: |
+          uv run python tools/riscv_build/act_matrix.py one --profile "$PROFILE" --memory "$MEMORY" --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate the target of the pair (nothing of it is versioned)
+        env:
+          PROFILE: ${{ inputs.profile }}
+          MEMORY: ${{ inputs.memory }}
+          JOBS: ${{ inputs.jobs }}
+        run: |
+          uv run python tools/riscv_build/gen_profiles.py --profile "$PROFILE" --memory "$MEMORY" --out build/target --jobs "$JOBS"
+          case "$PROFILE" in rv32e*) sh tools/riscv_build/install_udb_overlay.sh ;; esac
+
+      - name: Run the ACT4 certification of the pair (build + cocotb/GHDL)
+        run: riscv-tools --config build/target/config.yaml certify
+
+      - name: Upload the log and the waveforms
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: act4-${{ inputs.profile }}
+          path: |
+            logs/certification/latest.log
+            **/*.ghw
+          if-no-files-found: ignore
