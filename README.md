@@ -38,7 +38,7 @@ uv sync
 riscv-tools --config tools/riscv_build/config.yaml certify
 ```
 
-As ferramentas vêm da imagem `ci-act4` do repositório [Infra](https://github.com/insper-riscv/Infra): GCC RISC-V, Spike, Sail, GHDL, uv e Ruby com Bundler e as gems do UDB do ACT4. O fluxo completo está em `.github/workflows/certification.yml`. A execução de todos os perfis, com um runner separado por perfil, está em `.github/workflows/certification-profiles.yml`; ela lê os arquivos `tools/riscv_build/config.profile-<nome>.yaml` e `tools/riscv_build/config.flash-<nome>.yaml` e aceita, no disparo manual, uma expressão regular sobre o nome do perfil.
+As ferramentas vêm da imagem `ci-act4` do repositório [Infra](https://github.com/insper-riscv/Infra): GCC RISC-V, Spike, Sail, GHDL, uv e Ruby com Bundler e as gems do UDB do ACT4. O fluxo automático (`.github/workflows/certification.yml`) certifica os perfis mínimos de `tools/riscv_build/minimal_profiles.yaml` em todos os modelos de memória e cache que o topo modular aceita. Os dois workflows manuais, `certification-profiles.yml` (todos os perfis, com chave de confirmação) e `certification-profile.yml` (um perfil e um modelo), geram o alvo em tempo de execução. Os modelos, os perfis mínimos e o dimensionamento estão em [docs/pt-br/act4/matrix.md](docs/pt-br/act4/matrix.md).
 
 ---
 

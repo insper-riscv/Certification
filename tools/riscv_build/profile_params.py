@@ -3,6 +3,15 @@ import json
 import subprocess
 from pathlib import Path
 
+import yaml
+
+# As extensões do núcleo que não são da matriz de perfis (o platform.yaml as liga como `extras`): cada uma
+# acende o genérico `HAS_<NOME>` do topo e entra, nesta ordem, depois das extensões da matriz.
+EXTRAS = ("Zimop", "Zicond", "Zihintntl", "Zihintpause")
+
+# A lista dos perfis mínimos, com o critério de cada um.
+MINIMAL = "tools/riscv_build/minimal_profiles.yaml"
+
 # A especificação dos perfis é a do Core, que vem no submódulo Insper-RISC-V.
 SPEC = "Insper-RISC-V/Core/profiles/matrix.yaml"
 
@@ -19,6 +28,51 @@ def variants(root: Path) -> list[tuple[str, set[str]]]:
         cwd=root, check=True, capture_output=True, text=True,
     ).stdout
     return [(p["name"], set(p["extensions"])) for p in json.loads(listing)]
+
+
+def minimal_profiles(root: Path) -> list[tuple[str, set[str]]]:
+    """Lê os perfis mínimos do critério `REQUIRED_EXTENSIONS` do ACT4.
+
+    Parameters
+    ----------
+    root : Path
+        Raiz do repositório.
+
+    Returns
+    -------
+    list of tuple of (str, set of str)
+        O nome de cada perfil mínimo e o seu conjunto de extensões, na ordem do arquivo.
+    """
+    data = yaml.safe_load((root / MINIMAL).read_text())
+    return [(p["name"], set(p["extensions"])) for p in data["profiles"]]
+
+
+def find_profile(root: Path, name: str) -> set[str]:
+    """Acha as extensões de um perfil pelo nome, entre os mínimos e os da matriz do Core.
+
+    Parameters
+    ----------
+    root : Path
+        Raiz do repositório.
+    name : str
+        Nome do perfil, como em `minimal_profiles.yaml` ou na matriz (`rv32im_zicntr`).
+
+    Returns
+    -------
+    set of str
+        As extensões do perfil.
+
+    Raises
+    ------
+    SystemExit
+        Se nenhum perfil tem esse nome.
+    """
+    known = dict(minimal_profiles(root))
+    if name not in known:
+        known.update(variants(root))
+    if name not in known:
+        raise SystemExit(f"no profile named '{name}'")
+    return known[name]
 
 
 def has_csr(ext: set[str]) -> bool:
@@ -42,6 +96,7 @@ def extension_list(ext: set[str], name: str = "rv32i") -> list[str]:
         + (["Zihpm"] if "Zihpm" in ext else [])
         + (["Zifencei"] if "Zifencei" in ext else [])
         + (["Zicclsm"] if "Zicclsm" in ext else [])
+        + [extra for extra in EXTRAS if extra in ext]
     )
 
 
@@ -58,6 +113,9 @@ def hardware_flags(ext: set[str], name: str = "rv32i") -> dict[str, str]:
     }
     if "Zifencei" in ext:
         flags["HAS_ZIFENCEI"] = True
+    for extra in EXTRAS:
+        if extra in ext:
+            flags[f"HAS_{extra.upper()}"] = True
     return {name: str(value).lower() for name, value in flags.items()}
 
 

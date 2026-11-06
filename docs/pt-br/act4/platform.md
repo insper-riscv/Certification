@@ -29,6 +29,7 @@ As três palavras do HTIF ficam no fim da RAM, em `0x001FFFE0` (`tohost`), `0x00
 | `tools/riscv_build/config.modular.yaml` | `gen_profiles.py`, com as fontes de `config.platform-de0-cv.yaml` |
 | `tools/riscv_build/act/profile-*/` e `config.profile-*.yaml` | `gen_profiles.py`, um por perfil da matriz |
 | `tools/riscv_build/act/flash-*/`, `act/flash-ram-*/` e `config.flash-*.yaml` | `gen_flash_profiles.py`, um por perfil com Zifencei |
+| `build/target/` (alvo de um perfil e de um modelo de memória) | `gen_profiles.py --profile ... --memory ... --out ...`, em tempo de execução e sem versionar; veja [a matriz de certificação](matrix.md) |
 
 Os perfis de base RV32E (`rv32e*` e `rv32em*`) usam `isa.base: e`, o genérico `HAS_E` e o ABI `ilp32e`. O UDB publicado não declara a extensão `E`, então o UDB desses perfis traz `arch_overlay: rv32e`, e `sh tools/riscv_build/install_udb_overlay.sh` instala em `ci-act4` a pasta `tools/riscv_build/act/udb-overlay` com essa extensão antes do `certify`.
 
@@ -38,6 +39,8 @@ Os perfis de base RV32E (`rv32e*` e `rv32em*`) usam `isa.base: e`, o genérico `
 uv sync
 riscv-tools --config tools/riscv_build/config.profile-rv32im_zicsr.yaml certify
 ```
+
+Para certificar um perfil em outro modelo de memória, a seção 4 da [matriz de certificação](matrix.md) gera o alvo em tempo de execução.
 
 A execução precisa do limite de pilha elevado, que o `certify` ajusta, e de cerca de 6 GiB de RAM por simulação. O resultado fica em `logs/certification/latest.log`.
 
