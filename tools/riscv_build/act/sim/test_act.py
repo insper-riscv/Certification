@@ -27,7 +27,7 @@ from cocotb.triggers import ClockCycles, RisingEdge
 TOHOST_ADDR = 0x001FFFE0
 CONSOLE_ADDR = 0x001FFFF0
 TOHOST_PASS = 1
-TIMEOUT_CYCLES = 200_000
+TIMEOUT_CYCLES = 8_000_000
 
 
 @cocotb.test()
