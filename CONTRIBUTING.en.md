@@ -63,7 +63,10 @@ Any change to code, configuration, or documentation must pass all commands below
 
 ```bash
 uv run riscv-tools --config tools/riscv_build/config.yaml certify  # Runs the ACT4 suite against the core in simulation
+uv run riscv-tools --root . check-tree --kind certification        # Repository tree
 ```
+
+The `tree` job, in its own workflow, checks the repository tree with `riscv-tools check-tree`.
 
 When adding, renaming, or removing any versioned file, immediately update:
 - `tools/riscv_build/config.yaml`

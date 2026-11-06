@@ -46,7 +46,15 @@ entity act_modular_top is
     -- Inclui a extensão Zifencei.
     has_zifencei  : boolean := false;
     -- Inclui a extensão Zicclsm.
-    has_zicclsm   : boolean := false
+    has_zicclsm   : boolean := false;
+    -- Inclui a extensão Zimop.
+    has_zimop     : boolean := false;
+    -- Inclui a extensão Zicond.
+    has_zicond    : boolean := false;
+    -- Inclui as dicas ntl.* da extensão Zihintntl.
+    has_zihintntl : boolean := false;
+    -- Inclui a dica pause da extensão Zihintpause.
+    has_zihintpause : boolean := false
   );
   port (
     -- Clock do núcleo.
@@ -91,7 +99,11 @@ begin
       has_m               => has_m,
       has_zmmul           => has_zmmul,
       has_zifencei        => has_zifencei,
-      has_zicclsm         => has_zicclsm
+      has_zicclsm         => has_zicclsm,
+      has_zimop           => has_zimop,
+      has_zicond          => has_zicond,
+      has_zihintntl       => has_zihintntl,
+      has_zihintpause     => has_zihintpause
     )
     port map (
       i_clk           => i_clk,
