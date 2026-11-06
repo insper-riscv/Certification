@@ -124,37 +124,32 @@ def parameter_lines(ext: set[str], name: str = "rv32i") -> str:
     return "".join(f'    {key}: "{value}"\n' for key, value in hardware_flags(ext, name).items())
 
 
-# Do que o submódulo traz, o que a plataforma modular não usa: o controlador e o modelo de SDRAM, a
-# depuração por JTAG, o display e o topo da DE0-CV.
-_NOT_MODULAR = ("sdram", "jtag", "seg7", "seg_display", "de0_cv", "de0-cv")
-
 _MODULAR_PLATFORM = "Insper-RISC-V/src/simulation/modular"
+
+
+def _modular_sources(root: Path) -> list[str]:
+    """Lê as fontes VHDL do `config.yaml` da plataforma modular do Insper-RISC-V, na ordem de análise.
+
+    Essa lista é gerada pelo `make generate-sources` do Insper-RISC-V a partir do `provides` dos módulos, então
+    acompanha o topo modular sem filtro nenhum aqui. Os caminhos dela são relativos ao Insper-RISC-V.
+    """
+    lines = (root / _MODULAR_PLATFORM / "config.yaml").read_text().splitlines()
+    start = lines.index("  vhdl_sources:") + 1
+    listed = []
+    for line in lines[start:]:
+        if not line.startswith("    - "):
+            break
+        listed.append(f"Insper-RISC-V/{line[6:].strip()}")
+    return listed
 
 
 def write_modular_config(root: Path) -> None:
     """Escreve config.modular.yaml: a plataforma modular de simulação, com as fontes lidas do submódulo.
 
-    As fontes são as de `config.platform-de0-cv.yaml` (o núcleo, os blocos comuns, as memórias, as caches e o
-    interconector, na ordem de análise), sem o que é da SDRAM, do JTAG, do display e do topo da DE0-CV, mais o
-    chip de RAM, o pacote do mapa e o topo modular, e o topo de simulação do ACT4 desta pasta.
+    As fontes são as do `config.yaml` modular do Insper-RISC-V (o núcleo, os blocos comuns, as memórias, as
+    caches, os periféricos, o interconector e o topo modular), mais o topo de simulação do ACT4 desta pasta.
     """
-    # `riscv-tools platform sync` escreve a lista como itens `    - caminho` abaixo de `vhdl_sources:`.
-    lines = (root / "tools/riscv_build/config.platform-de0-cv.yaml").read_text().splitlines()
-    start = lines.index("  vhdl_sources:") + 1
-    listed = []
-    for line in lines[start:]:
-        if not line.startswith("  - "):
-            break
-        listed.append(line[4:].strip())
-    sources = [s for s in listed if not any(k in s for k in _NOT_MODULAR)]
-    # ram_chip depende só dos blocos comuns; entra logo depois das memórias de simulação.
-    at = sources.index(next(s for s in sources if s.endswith("rom_simulation.vhd"))) + 1
-    sources.insert(at, "Insper-RISC-V/Memory/src/RAM/SoC/ram_chip.vhd")
-    sources += [
-        f"{_MODULAR_PLATFORM}/modular_map_pkg.vhd",
-        f"{_MODULAR_PLATFORM}/modular_sim_top.vhd",
-        "tools/riscv_build/act/sim/act_modular_top.vhd",
-    ]
+    sources = [*_modular_sources(root), "tools/riscv_build/act/sim/act_modular_top.vhd"]
     listing = "".join(f"    - {s}\n" for s in sources)
     (root / "tools/riscv_build/config.modular.yaml").write_text(
         f"""# The ACT4 track on the modular simulation platform (Insper-RISC-V, src/simulation/modular): the ROM and the RAM of
