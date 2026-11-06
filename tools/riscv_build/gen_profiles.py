@@ -28,7 +28,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import memory_models
-from profile_params import extension_list, find_profile, is_e, parameter_lines, variants, write_modular_config
+from profile_params import extension_list, find_profile, is_e, parameter_lines, reference_profiles, write_modular_config
 from target_gen import BASE, write_generated, write_target
 
 parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n")[0])
@@ -66,7 +66,7 @@ if args.memory or args.out or args.jobs is not None:
 
 # The profiles come from the specification of the core (riscv-tools profiles), which is in the
 # Insper-RISC-V submodule (profile_params.py).
-VARIANTS = variants(root)
+VARIANTS = reference_profiles(root)
 write_modular_config(root)
 
 for name, ext in VARIANTS:

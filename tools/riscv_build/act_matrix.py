@@ -22,7 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import memory_models
 from memory_models import MemoryModel
-from profile_params import find_profile, minimal_profiles, variants
+from profile_params import find_profile, minimal_profiles, reference_profiles
 
 # Um nome de perfil só tem letras, algarismos e sublinhado; o filtro `--only` é uma expressão regular curta.
 _NAME = re.compile(r"[A-Za-z0-9_]+")
@@ -51,7 +51,7 @@ def _profiles(root: Path, mode: str, profile: str | None) -> list[tuple[str, set
         return [(profile, find_profile(root, profile))]
     chosen = dict(minimal_profiles(root))
     if mode == "all":
-        chosen = {**dict(variants(root)), **chosen}
+        chosen = {**dict(reference_profiles(root)), **chosen}
     return sorted(chosen.items()) if mode == "all" else list(chosen.items())
 
 
@@ -86,6 +86,24 @@ def _entries(
                 continue
             run.append({"profile": name, "memory": model.spec, "slug": model.slug})
     return run, [f"{count} x {reason}" for reason, count in refused.items()]
+
+
+def matrix_entries(profiles: list[tuple[str, set[str]]], models: list[MemoryModel]) -> tuple[list[dict[str, str]], list[str]]:
+    """Cruza perfis e modelos sem filtro, como o job `plan` do workflow automático.
+
+    Parameters
+    ----------
+    profiles : list of tuple of (str, set of str)
+        Os perfis.
+    models : list of MemoryModel
+        Os modelos de memória a considerar.
+
+    Returns
+    -------
+    tuple of (list of dict of {str: str}, list of str)
+        Os pares que rodam e as linhas de recusa, como em `_entries`.
+    """
+    return _entries(profiles, models, re.compile(""))
 
 
 def _markdown(run: list[dict[str, str]], refused: list[str]) -> str:

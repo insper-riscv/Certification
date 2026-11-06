@@ -42,33 +42,38 @@ O teste `Zifencei-fence.i-00` reescreve o próprio código, então o corpo dele 
 
 ## 3. Perfis mínimos
 
-`tools/riscv_build/minimal_profiles.yaml` lista, para cada pasta de testes do ACT4 que o núcleo implementa, o menor perfil cujas extensões contêm o `REQUIRED_EXTENSIONS` dos testes da pasta, mais dois perfis com tudo junto. As pastas vêm do ACT4 fixado em `vendor/riscv-arch-test`.
+`tools/riscv_build/minimal_profiles.yaml` lista, para cada pasta de testes do ACT4 que o núcleo implementa, o menor perfil cujas extensões contêm o `REQUIRED_EXTENSIONS` dos testes da pasta, mais os perfis com tudo junto de cada base. As pastas vêm do ACT4 fixado em `vendor/riscv-arch-test`.
 
-| Perfil | Extensões acrescentadas à base | Pasta de testes | Testes |
-| :--- | :--- | :--- | ---: |
-| `rv32i` | nenhuma | `rv32i/I` | 39 |
-| `rv32im` | M | `rv32i/M` | 51 |
-| `rv32i_zmmul` | Zmmul | `rv32i/Zmmul` | 43 |
-| `rv32i_zicsr` | Zicsr | `rv32i/Zicsr` | 45 |
-| `rv32i_zicntr` | Zicntr | `rv32i/Zicntr` | 47 |
-| `rv32i_zihpm` | Zihpm | `rv32i/Zihpm` | 47 |
-| `rv32i_zicclsm` | Zicclsm | `rv32i/Zicclsm` | 44 |
-| `rv32i_zifencei` | Zifencei | `rv32i/Zifencei` | 40 |
-| `rv32i_zimop` | Zimop | `rv32i/Zimop` | 79 |
-| `rv32i_zicond` | Zicond | `rv32i/Zicond` | 41 |
-| `rv32i_zihintntl` | Zihintntl | `rv32i/Zihintntl` | 43 |
-| `rv32i_zihintpause` | Zihintpause | `rv32i/Zihintpause` | 40 |
-| `rv32e` | nenhuma | `rv32e/E` | 39 |
-| `rv32em` | M | `rv32e/M` | 51 |
-| `rv32e_zmmul` | Zmmul | `rv32e/Zmmul` | 43 |
-| `rv32im_full` | M, Zicclsm, Zicntr, Zihpm, Zimop, Zicond, Zihintntl, Zihintpause | todas as anteriores juntas | 113 |
-| `rv32im_full_zifencei` | os mesmos, com Zifencei | todas as anteriores juntas | 114 |
+<!-- gen:table -->
+| Perfil | Extensões acrescentadas à base | Pasta de testes | Testes | Jobs |
+| :--- | :--- | :--- | ---: | ---: |
+| `rv32i` | nenhuma | `rv32i/I` | 39 | 4 |
+| `rv32im` | M | `rv32i/M` | 51 | 4 |
+| `rv32i_zmmul` | Zmmul | `rv32i/Zmmul` | 43 | 4 |
+| `rv32i_zicntr` | Zicntr | `rv32i/Zicntr` | 47 | 4 |
+| `rv32i_zihpm` | Zihpm | `rv32i/Zihpm` | 47 | 4 |
+| `rv32i_zicclsm` | Zicclsm | `rv32i/Zicclsm` | 44 | 4 |
+| `rv32i_zifencei` | Zifencei | `rv32i/Zifencei` | 40 | 1 |
+| `rv32i_zimop` | Zimop | `rv32i/Zimop` | 79 | 4 |
+| `rv32i_zicond` | Zicond | `rv32i/Zicond` | 41 | 4 |
+| `rv32i_zihintntl` | Zihintntl | `rv32i/Zihintntl` | 43 | 4 |
+| `rv32i_zihintpause` | Zihintpause | `rv32i/Zihintpause` | 40 | 4 |
+| `rv32e` | nenhuma | `rv32e/E` | 39 | 4 |
+| `rv32em` | M | `rv32e/M` | 51 | 4 |
+| `rv32e_zmmul` | Zmmul | `rv32e/Zmmul` | 43 | 4 |
+| `rv32im_full` | M, Zicclsm, Zicntr, Zihpm, Zimop, Zicond, Zihintntl, Zihintpause | todas as pastas da base juntas | 113 | 4 |
+| `rv32im_full_zifencei` | M, Zicclsm, Zicntr, Zihpm, Zifencei, Zimop, Zicond, Zihintntl, Zihintpause | todas as pastas da base juntas | 114 | 1 |
+| `rv32em_full` | M, Zicclsm, Zicntr, Zihpm, Zimop, Zicond, Zihintntl, Zihintpause | todas as pastas da base juntas | 51 | 4 |
+| `rv32em_full_zifencei` | M, Zicclsm, Zicntr, Zihpm, Zifencei, Zimop, Zicond, Zihintntl, Zihintpause | todas as pastas da base juntas | 51 | 1 |
+<!-- /gen -->
 
-A contagem de testes é a dos arquivos cujo `REQUIRED_EXTENSIONS` o perfil cobre, incluindo os das extensões que ele implica. Os perfis `rv32i_zicntr` e `rv32i_zihpm` incluem o Zicsr porque os contadores são CSRs. O Zmmul tem perfil próprio porque é a variante de RTL que multiplica sem dividir. Zimop, Zicond, Zihintntl e Zihintpause não fazem parte da matriz de perfis do Core; o núcleo as liga por genéricos do topo (`HAS_ZIMOP`, `HAS_ZICOND`, `HAS_ZIHINTNTL`, `HAS_ZIHINTPAUSE`), e o gerador as aceita no conjunto de extensões do perfil.
+A contagem de testes é a dos ELFs que o ACT4 gera para o perfil, isto é, a dos arquivos cujo `REQUIRED_EXTENSIONS` o perfil cobre, incluindo os das extensões que ele implica. Os perfis `rv32i_zicntr` e `rv32i_zihpm` incluem o Zicsr porque os contadores são CSRs. O Zmmul tem perfil próprio porque é a variante de RTL que multiplica sem dividir. Zimop, Zicond, Zihintntl e Zihintpause não fazem parte da matriz de perfis do Core; o núcleo as liga por genéricos do topo (`HAS_ZIMOP`, `HAS_ZICOND`, `HAS_ZIHINTNTL`, `HAS_ZIHINTPAUSE`), e o gerador as aceita no conjunto de extensões do perfil.
 
-Os perfis `rv32i_zifencei` e `rv32im_full_zifencei` rodam em um só modelo cada (seção 2.1); os outros 15 rodam nos 4. O total do workflow automático é, portanto:
+<!-- gen:total -->
+Os perfis `rv32i_zifencei`, `rv32im_full_zifencei` e `rv32em_full_zifencei` rodam em um só modelo cada (seção 2.1); os outros 15 rodam nos 4. O total do workflow automático é, portanto:
 
-$$15 \times 4 + 2 \times 1 = 62 \text{ jobs}$$
+$$15 \times 4 + 3 \times 1 = 63 \text{ jobs}$$
+<!-- /gen -->
 
 ## 4. Gerar o alvo em tempo de execução
 
@@ -102,8 +107,8 @@ Os genéricos `ROM_EXTERNAL` e `RAM_EXTERNAL` do `act_modular_top` acompanham o 
 
 | Workflow | Disparo | Cruza | Controles |
 | :--- | :--- | :--- | :--- |
-| `certification (ACT4)` | `pull_request`, `push` na `main` | Os 17 perfis mínimos com os modelos aceitos (62 jobs) | `max-parallel` de 16, `concurrency` por ramo, `act.jobs` de 4 |
-| `certification (ACT4, all profiles and memory models)` | Manual, com chave | Todos os perfis (os 120 da matriz e os mínimos) com os modelos aceitos | `confirmation` (valor do segredo `CERTIFICATION_RUN_SECRET`), `target`, `jobs`, `max-parallel`, `memory`, `only` |
+| `certification (ACT4)` | `pull_request`, `push` na `main` | Os <!-- gen:profiles -->18<!-- /gen --> perfis mínimos com os modelos aceitos (<!-- gen:jobs -->63<!-- /gen --> jobs) | `max-parallel` de 16, `concurrency` por ramo, `act.jobs` de 4 |
+| `certification (ACT4, all profiles and memory models)` | Manual, com chave | Todos os perfis (os 120 de referência da matriz do Core, sem Zimop e Zicond, e os mínimos) com os modelos aceitos | `confirmation` (valor do segredo `CERTIFICATION_RUN_SECRET`), `target`, `jobs`, `max-parallel`, `memory`, `only` |
 | `certification (ACT4, one profile and memory model)` | Manual | Um perfil e um modelo | `profile`, `memory`, `target`, `jobs` |
 
 A entrada `target` vale `simulated` (GHDL em runners do GitHub) ou `real` (a placa DE0-CV, em um runner self-hosted). O valor `real` termina o workflow com uma mensagem, porque o runner da placa não está configurado. Todas as entradas chegam ao shell por variáveis de ambiente e passam por uma lista branca de caracteres antes do uso, e o job `plan` imprime a matriz no log e no resumo do job antes de qualquer simulação.
@@ -123,7 +128,7 @@ Cada job simula os testes do perfil um a um, e cada teste reanalisa o VHDL antes
 
 A tabela traz pares rodados com `--jobs 6` em contêineres de 6 CPUs, cada um com a imagem `ci-act4`; todos os testes passaram. O tempo é de parede, e a RAM de pico é a do maior processo da simulação. Com a RAM interna (arquiteturas `A` e `C`) o pico é de 5,9 GiB, e com a RAM externa (`B` e `D`) de 3,0 GiB. Um teste leva de 8 a 10 s, quase todo na análise do VHDL.
 
-Os 62 jobs do workflow automático somam 3054 execuções de teste, cerca de 8 horas de simulação, sem contar o checkout recursivo, o `uv sync` e a geração dos ELFs. Com `max-parallel` de 16 a estimativa para a certificação é da ordem de uma hora, e o maior job leva cerca de 15 minutos de simulação (`rv32im_full_zifencei`, com 114 testes). O testbench da RAM interna espera até 8 milhões de ciclos pelo `tohost`, porque a ROM externa atrás da cache de instruções multiplica a duração dos testes longos. O limite de memória de um runner padrão do GitHub (16 GiB) comporta qualquer job.
+Os <!-- gen:jobs -->63<!-- /gen --> jobs do workflow automático somam <!-- gen:runs -->3289<!-- /gen --> execuções de teste, cerca de <!-- gen:hours -->9<!-- /gen --> horas de simulação, sem contar o checkout recursivo, o `uv sync` e a geração dos ELFs. Com `max-parallel` de 16 a estimativa para a certificação é da ordem de <!-- gen:wall -->1<!-- /gen --> h, e o maior job leva cerca de 15 minutos de simulação (<!-- gen:largest -->`rv32im_full_zifencei`<!-- /gen -->, com <!-- gen:largest_tests -->114<!-- /gen --> testes). O testbench da RAM interna espera até 8 milhões de ciclos pelo `tohost`, porque a ROM externa atrás da cache de instruções multiplica a duração dos testes longos. O limite de memória de um runner padrão do GitHub (16 GiB) comporta qualquer job.
 
 ---
 

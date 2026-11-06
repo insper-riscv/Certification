@@ -4,7 +4,7 @@
 
 ## 1. What runs
 
-The 120 profiles of the Core matrix (`Insper-RISC-V/Core/profiles/matrix.yaml`) run on the modular simulation platform of Insper-RISC-V (`src/simulation/modular`). The top that cocotb simulates is `act_modular_top` (`tools/riscv_build/act/sim/`), which gives the modular top the ports the testbenches observe.
+The 120 reference profiles of the Core matrix (`Insper-RISC-V/Core/profiles/matrix.yaml`) run on the modular simulation platform of Insper-RISC-V (`src/simulation/modular`). The top that cocotb simulates is `act_modular_top` (`tools/riscv_build/act/sim/`), which gives the modular top the ports the testbenches observe.
 
 | Group | Profiles | Model | ROM | RAM | Testbench |
 | :--- | :--- | :--- | :--- | :--- | :--- |
