@@ -22,17 +22,17 @@ quartus:
   project_dir: Insper-RISC-V/src/cyclone-v/de0-cv
   project_name: de0-cv
   sof_file: output_files/de0-cv.sof
-  rom_mif_target: flash_init.mif
+  rom_mif_target: init.mif
   boot_memory_mif_target: boot_memory_init.mif
   jtag_device: '@1: 5CE(BA4|FA4) (0x02B050DD)'
   ram_mem_instance: 0
-  rom_write_method: mem_edit
-  rom_mem_instances:
-  - 0
+  rom_write_method: jtag_loader
+  rom_mem_instances: []
   program_wait_seconds: 15
   poll_interval_seconds: 2.5
   default_timeout_s: 15
   ram_backend: sdram_debug
+  sdram_debug_instance: 3
 sim:
   toplevel: rv32im_sdram_flash_sim_test
   vhdl_sources:
@@ -135,8 +135,10 @@ sim:
   - Insper-RISC-V/Peripherals/src/CLINT/soc/clint_consts.vhd
   - Insper-RISC-V/Peripherals/src/CLINT/soc/clint_mtime.vhd
   - Insper-RISC-V/Peripherals/src/CLINT/soc/clint.vhd
-  - Insper-RISC-V/Peripherals/src/intc/soc/ext_irq_consts.vhd
-  - Insper-RISC-V/Peripherals/src/intc/soc/ext_irq_controller.vhd
+  - Insper-RISC-V/Peripherals/src/PLIC/soc/plic_consts.vhd
+  - Insper-RISC-V/Peripherals/src/PLIC/soc/plic_gateway.vhd
+  - Insper-RISC-V/Peripherals/src/PLIC/soc/plic_arbiter.vhd
+  - Insper-RISC-V/Peripherals/src/PLIC/soc/plic.vhd
   - Insper-RISC-V/Peripherals/src/flash-controller/soc/flash_controller.vhd
   - Insper-RISC-V/src/cyclone-v/de0-cv/de0-cv_sim_top.vhd
   test_module: testbench.test_c_program
@@ -146,7 +148,7 @@ sim:
     SIM_TIMEOUT_CYCLES: '12000000'
     TOHOST_ADDR: '0x43FFFFE8'
     STDOUT_ADDR: '0x43FFFBE0'
-    SIM_EXTRA_CLOCKS: CLK_MEM:7
+    SIM_EXTRA_CLOCKS: CLK_MEM:10
     SIM_SAMPLE_CLOCK: pll_clk_idexmem
     UART_START_ON_ACCESS: '1'
     UART_SLOT: '4'
@@ -165,8 +167,8 @@ sim:
     HAS_ZIHPM: true
     HAS_ZIMOP: true
     HAS_ZICOND: true
-    HAS_ZIHINTNTL: false
-    HAS_ZIHINTPAUSE: false
+    HAS_ZIHINTNTL: true
+    HAS_ZIHINTPAUSE: true
     HAS_ZIFENCEI: true
     HAS_ZICCLSM: true
     HAS_INTERRUPTS: true
