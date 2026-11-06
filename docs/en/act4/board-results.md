@@ -7,7 +7,7 @@
 | Item | Value |
 | :--- | :--- |
 | Profile | `rv32im_full_zifencei`: I, M, Zmmul, Zicsr, Zicntr, Zihpm, Zifencei, Zicclsm, Zimop, Zicond, Zihintntl and Zihintpause |
-| Bitstream | `de0-cv.sof` of Insper-RISC-V `d68c950`, 50 MHz core clock |
+| Bitstream | `de0-cv.sof` of Insper-RISC-V `ceea999` (two-port FLASH rewritten by the JTAG loader, FLASH controller and PLIC in the top), 50 MHz core clock |
 | ACT4 | `riscv-arch-test` pinned in `vendor/`, Sail as the reference model |
 | Boards | laptop and PC1 in parallel, ELFs split by `--part 0/2` and `1/2` |
 
