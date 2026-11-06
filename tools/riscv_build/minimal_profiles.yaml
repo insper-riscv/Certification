@@ -1,6 +1,6 @@
 # The minimal profiles of the automatic certification: for every extension that ACT4 has a test folder for, the
 # smallest profile whose set of extensions contains the REQUIRED_EXTENSIONS of that folder (the test header of the
-# pinned vendor/riscv-arch-test lists them), plus the profiles with everything the core implements (one per base). Each profile is
+# ACT4 checkout of the ci-act4 image lists them), plus the profiles with everything the core implements (one per base). Each profile is
 # certified on every memory model that the modular top accepts (memory_models.py) and that the profile can use.
 #
 # `extensions` lists what the profile adds to the base of its name (I for rv32i, E for rv32e). Zihintntl and

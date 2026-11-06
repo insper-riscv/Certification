@@ -42,7 +42,7 @@ O teste `Zifencei-fence.i-00` reescreve o próprio código, então o corpo dele 
 
 ## 3. Perfis mínimos
 
-`tools/riscv_build/minimal_profiles.yaml` lista, para cada pasta de testes do ACT4 que o núcleo implementa, o menor perfil cujas extensões contêm o `REQUIRED_EXTENSIONS` dos testes da pasta, mais os perfis com tudo junto de cada base. As pastas vêm do ACT4 fixado em `vendor/riscv-arch-test`.
+`tools/riscv_build/minimal_profiles.yaml` lista, para cada pasta de testes do ACT4 que o núcleo implementa, o menor perfil cujas extensões contêm o `REQUIRED_EXTENSIONS` dos testes da pasta, mais os perfis com tudo junto de cada base. As pastas vêm do checkout do ACT4 da imagem `ci-act4`, o mesmo commit das gems do UDB.
 
 <!-- gen:table -->
 | Perfil | Extensões acrescentadas à base | Pasta de testes | Testes | Jobs |

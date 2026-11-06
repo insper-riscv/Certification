@@ -1,6 +1,6 @@
 # Configuration of the ACT4 (riscv-arch-test) certification track, driven
 # by `riscv-tools certify`. This repo holds only the certification: the
-# official suite (vendor/riscv-arch-test, a pinned submodule), the DUT
+# official suite (the checkout of ACT4 in the ci-act4 image, act.vendor_dir), the DUT
 # targets (tools/riscv_build/act/) and their cocotb testbenches.
 #
 # ACT4 runs entirely in simulation (cocotb/GHDL), never on the board. The machine it runs on is the

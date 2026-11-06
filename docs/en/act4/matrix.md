@@ -42,7 +42,7 @@ The `Zifencei-fence.i-00` test rewrites its own code, so its body runs from the 
 
 ## 3. Minimal profiles
 
-`tools/riscv_build/minimal_profiles.yaml` lists, for each ACT4 test folder that the core implements, the smallest profile whose extensions contain the `REQUIRED_EXTENSIONS` of the folder's tests, plus the profiles with everything together of each base. The folders come from the ACT4 pinned in `vendor/riscv-arch-test`.
+`tools/riscv_build/minimal_profiles.yaml` lists, for each ACT4 test folder that the core implements, the smallest profile whose extensions contain the `REQUIRED_EXTENSIONS` of the folder's tests, plus the profiles with everything together of each base. The folders come from the ACT4 checkout of the `ci-act4` image, the same commit as the UDB gems.
 
 <!-- gen:table -->
 | Profile | Extensions added to the base | Test folder | Tests | Jobs |

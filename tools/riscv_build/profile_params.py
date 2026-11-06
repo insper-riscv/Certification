@@ -237,7 +237,8 @@ sim:
     RAM_FILE: "{{ram_hex_path}}"
 
 act:
-  vendor_dir: vendor/riscv-arch-test
+  # The checkout of ACT4 in the ci-act4 image: its tests, its gems and its make are of one commit, which every run records.
+  vendor_dir: {ACT4_DIR}
   jobs: 0
   # Where the data region of the ELFs starts (the RAM) and the size of the boot ROM.
   ram_base: 0x100000
