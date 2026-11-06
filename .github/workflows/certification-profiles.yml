@@ -1,17 +1,49 @@
-name: certification (ACT4, all profiles)
+name: certification (ACT4, all profiles and memory models)
 
-# Runs the ACT4 certification, in simulation, of every profile of the core: one job, and so one
-# separate runner, per profile. A profile without Zifencei is a tools/riscv_build/config.profile-<name>.yaml
-# and one with Zifencei, which needs the caches, a tools/riscv_build/config.flash-<name>.yaml (both
-# written by the generators from Insper-RISC-V/Core/profiles/matrix.yaml), so a new profile gets its
-# runner as soon as its configuration is committed. The VHDL is the one of the Insper-RISC-V submodule.
-# It runs only on demand (each profile takes about 15 minutes and the base-platform ones need a runner
-# with about 15 GiB of RAM).
+# Manual and exhaustive: every profile (the 120 of the matrix of the Core and the minimal ones of
+# tools/riscv_build/minimal_profiles.yaml) crossed with every memory model the modular top accepts, one job, and
+# so one runner, per (profile, memory model) pair. The target of each pair is generated at run time by
+# tools/riscv_build/gen_profiles.py and nothing is committed. It is expensive, so it runs only with the
+# confirmation key: the value of the repository secret CERTIFICATION_RUN_SECRET, the same logic that guards the
+# publication of the images of the Infra. The pairs left out (a cache over an internal memory, a memory
+# without its cache, Zifencei without both memories external) and the reason of each are printed by the job
+# "plan". To certify one pair, use the workflow "certification (ACT4, one profile and memory model)".
+#
+# The tests, the Ruby gems of the UDB and the `make` of ACT4 are the ones of the ci-act4 image, all of the same ACT4
+# commit, which every job records in its summary and in its result. When every pair passes, the job "release"
+# publishes a release titled with the date and the time (UTC), with the profiles tested, the memory models used
+# and the logs attached.
 on:
   workflow_dispatch:
     inputs:
+      confirmation:
+        description: "Value of the repository secret CERTIFICATION_RUN_SECRET, to confirm you want to run the whole matrix"
+        required: true
+      target:
+        description: "simulated runs in GHDL on GitHub runners; real runs on the DE0-CV board (self-hosted runner, not configured yet)"
+        type: choice
+        options: [simulated, real]
+        default: simulated
+      jobs:
+        description: "Workers of the ACT4 make inside each simulated job (act.jobs, JOBS= of the make; 0 is automatic)"
+        required: false
+        default: "2"
+      max-parallel:
+        description: "How many simulated jobs run at the same time"
+        required: false
+        default: "10"
+      memory:
+        description: "Memory model: all, or one of the models the top accepts"
+        type: choice
+        options:
+          - all
+          - rom=int,ram=int,icache=off,dcache=off
+          - rom=int,ram=ext,icache=off,dcache=on
+          - rom=ext,ram=int,icache=on,dcache=off
+          - rom=ext,ram=ext,icache=on,dcache=on
+        default: all
       only:
-        description: "Regular expression on the name of the config (profile-<name> or flash-<name>); empty runs every profile"
+        description: "Regular expression over <profile>/<memory model>, for example 'zicntr/rom-ext'; empty runs every pair"
         required: false
         default: ""
 
@@ -19,61 +51,175 @@ concurrency:
   group: certification-profiles-${{ github.ref }}
   cancel-in-progress: true
 
-jobs:
-  list:
-    # One entry per committed profile configuration; the matrix of the next job is built from it.
-    runs-on: ubuntu-26.04
-    outputs:
-      profiles: ${{ steps.names.outputs.profiles }}
-    steps:
-      - uses: actions/checkout@v7
+permissions:
+  contents: read
 
-      - name: List the profiles
-        id: names
+jobs:
+  plan:
+    # Checks the inputs and writes the matrix. Nothing of the inputs reaches a shell as code: they travel in
+    # environment variables and are validated against a whitelist first.
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    container:
+      image: ghcr.io/insper-riscv/ci-act4:latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      count: ${{ steps.matrix.outputs.count }}
+      jobs: ${{ steps.check.outputs.jobs }}
+      max_parallel: ${{ steps.check.outputs.max_parallel }}
+    steps:
+      - name: Check the confirmation key
         env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+          SECRET: ${{ secrets.CERTIFICATION_RUN_SECRET }}
+        run: |
+          if [ -z "$SECRET" ] || [ "$CONFIRMATION" != "$SECRET" ]; then
+            echo "::error::confirmation does not match CERTIFICATION_RUN_SECRET, refusing to run the whole matrix"
+            exit 1
+          fi
+
+      - name: Check the target and the inputs
+        id: check
+        env:
+          TARGET: ${{ inputs.target }}
+          JOBS: ${{ inputs.jobs }}
+          MAX_PARALLEL: ${{ inputs.max-parallel }}
+          MEMORY: ${{ inputs.memory }}
           ONLY: ${{ inputs.only }}
         run: |
-          names=$(ls tools/riscv_build/config.profile-*.yaml tools/riscv_build/config.flash-rv*.yaml \
-            | sed -E 's#.*/config\.(.*)\.yaml#\1#' \
-            | grep -E "${ONLY:-.}" \
-            | sort)
-          test -n "$names" || { echo "no profile matches '${ONLY}'"; exit 1; }
-          echo "profiles=$(echo "$names" | jq -R -s -c 'split("\n") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"
-          echo "$names" | wc -l | xargs echo "profiles:"
+          if [ "$TARGET" = "real" ]; then
+            echo "::error::target=real needs a self-hosted runner with the DE0-CV board, which is not configured yet; use target=simulated"
+            exit 1
+          fi
+          [ "$TARGET" = "simulated" ] || { echo "::error::target must be simulated or real"; exit 1; }
+          printf '%s' "$JOBS" | grep -Eq '^[0-9]{1,2}$' || { echo "::error::jobs must be a number from 0 to 64"; exit 1; }
+          [ "$JOBS" -le 64 ] || { echo "::error::jobs must be a number from 0 to 64"; exit 1; }
+          printf '%s' "$MAX_PARALLEL" | grep -Eq '^[0-9]{1,2}$' || { echo "::error::max-parallel must be a number from 1 to 20"; exit 1; }
+          { [ "$MAX_PARALLEL" -ge 1 ] && [ "$MAX_PARALLEL" -le 20 ]; } || { echo "::error::max-parallel must be a number from 1 to 20"; exit 1; }
+          printf '%s' "$MEMORY" | grep -Eq '^(all|rom=(int|ext),ram=(int|ext),icache=(on|off),dcache=(on|off))$' || { echo "::error::memory is not a valid model"; exit 1; }
+          printf '%s' "$ONLY" | grep -Eq '^[A-Za-z0-9_|^$.*+?()/-]{0,200}$' || { echo "::error::only holds characters outside the allowed set"; exit 1; }
+          echo "jobs=$JOBS" >> "$GITHUB_OUTPUT"
+          echo "max_parallel=$MAX_PARALLEL" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+
+      - name: Fetch the matrix of profiles of the Core
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git submodule update --init Insper-RISC-V
+          git -C Insper-RISC-V submodule update --init Core
+
+      - name: Record the ACT4 commit of the image
+        run: echo "ACT4 commit of the image (tests, gems and make) - $(uv run python tools/riscv_build/act_result.py commit)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Print and write the matrix
+        id: matrix
+        env:
+          MEMORY: ${{ inputs.memory }}
+          ONLY: ${{ inputs.only }}
+        run: |
+          uv run python tools/riscv_build/act_matrix.py all \
+            --memory "$MEMORY" --only "$ONLY" \
+            --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
 
   act4:
-    needs: list
-    # ACT4 tests run entirely under cocotb/GHDL, never on the FPGA, in the ci-act4 image: it carries
-    # the RISC-V GCC, the Sail model that is ACT4's reference, and Ruby, Bundler and the UDB gems of
-    # the ACT4 commit this repository pins. A profile of the base platform simulates large memories
-    # and needs about 15 GiB of RAM, so it must not share a runner with another one.
-    name: ${{ matrix.profile }}
+    needs: plan
+    # ACT4 tests run entirely under cocotb/GHDL, never on the FPGA, in the ci-act4 image: it carries the RISC-V
+    # GCC, the Sail model that is ACT4's reference, and the checkout of ACT4 with its Ruby gems, all of one commit.
+    # The VHDL is the one of the Insper-RISC-V submodule.
+    name: ${{ matrix.profile }} / ${{ matrix.slug }}
     runs-on: ubuntu-26.04
     timeout-minutes: 120
     container:
       image: ghcr.io/insper-riscv/ci-act4:latest
     strategy:
       fail-fast: false
+      max-parallel: ${{ fromJSON(needs.plan.outputs.max_parallel) }}
       matrix:
-        profile: ${{ fromJSON(needs.list.outputs.profiles) }}
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
 
     steps:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
 
-      - name: Install Python dependencies (cocotb; riscv-tools comes from the image)
+      - name: Record the ACT4 commit of the image
+        run: echo "ACT4 commit of the image (tests, gems and make) - $(uv run python tools/riscv_build/act_result.py commit)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install Python dependencies (cocotb and PyYAML; riscv-tools comes from the image)
         run: uv sync
 
-      - name: Run the ACT4 certification of the profile (build + cocotb/GHDL)
-        run: riscv-tools --config tools/riscv_build/config.${{ matrix.profile }}.yaml certify
+      - name: Generate the target of the pair (nothing of it is versioned)
+        env:
+          PROFILE: ${{ matrix.profile }}
+          MEMORY: ${{ matrix.memory }}
+          JOBS: ${{ needs.plan.outputs.jobs }}
+        run: |
+          uv run python tools/riscv_build/gen_profiles.py --profile "$PROFILE" --memory "$MEMORY" --out build/target --jobs "$JOBS"
+          case "$PROFILE" in rv32e*) sh tools/riscv_build/install_udb_overlay.sh ;; esac
 
-      - name: Upload the log and the waveforms
+      - name: Run the ACT4 certification of the pair (build + cocotb/GHDL)
+        id: certify
+        run: riscv-tools --config build/target/config.yaml certify
+
+      - name: Collect the verdict of each ELF, the log and the list of tests
+        if: ${{ always() && steps.certify.outcome != 'skipped' }}
+        env:
+          PROFILE: ${{ matrix.profile }}
+          MEMORY: ${{ matrix.memory }}
+        run: uv run python tools/riscv_build/act_result.py collect --profile "$PROFILE" --memory "$MEMORY" --out build/act4-result
+
+      - name: Upload the result of the pair
+        if: ${{ always() && steps.certify.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: act4-result-${{ matrix.profile }}-${{ matrix.slug }}
+          path: build/act4-result
+          if-no-files-found: ignore
+
+      - name: Upload the waveforms
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: act4-${{ matrix.profile }}
-          path: |
-            logs/certification/latest.log
-            **/*.ghw
+          name: act4-ghw-${{ matrix.profile }}-${{ matrix.slug }}
+          path: "**/*.ghw"
           if-no-files-found: ignore
+
+  release:
+    # Publishes a release titled with the date and the time (UTC) when every pair passed, with the profiles
+    # tested, the ELFs per module, the memory combination of each pair and the logs attached. The script refuses a
+    # result with an ELF that did not pass, so a failed pair never becomes a release.
+    needs: [plan, act4]
+    if: ${{ success() }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download the results of this run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" --pattern 'act4-result-*' --dir results
+
+      - name: Assemble the title, the notes, the tag and the logs (nothing is written if a pair failed)
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          MATRIX: ${{ needs.plan.outputs.matrix }}
+        run: |
+          args=(--results results --out release --mode manual --kind matrix
+            --cert-commit "$GITHUB_SHA" --riscv-commit "$(git rev-parse HEAD:Insper-RISC-V)"
+            --datetime "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --run-url "$RUN_URL" --matrix "$MATRIX")
+          python3 tools/riscv_build/release_notes.py "${args[@]}"
+
+      - name: Create the release with the logs of the certification attached
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mapfile -t logs < release/attachments.txt
+          gh release create "$(cat release/tag.txt)" "${logs[@]}" \
+            --target "$GITHUB_SHA" --title "$(cat release/title.txt)" --notes-file release/notes.md --latest=false
+          echo "Release $(cat release/tag.txt) - $(cat release/title.txt)" >> "$GITHUB_STEP_SUMMARY"

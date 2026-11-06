@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from profile_params import extension_list, is_e, parameter_lines, variants
+from profile_params import extension_list, is_e, parameter_lines, reference_profiles
 
 root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.cwd()
 rb = root / "tools/riscv_build"
@@ -63,7 +63,7 @@ def sim_config(target: str, extensions: str, params: str, ram_variant: bool, rtg
     )
 
 
-for name, ext in variants(root):
+for name, ext in reference_profiles(root):
     if "Zifencei" not in ext:
         continue
     src = rb / "act" / f"profile-{name}"
