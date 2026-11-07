@@ -1,0 +1,24 @@
+# The ACT4 track of the profile rv32e_zicsr_zimop_zicond on the modular platform with the memories inside the chip:
+# config.modular.yaml with the target, the extensions and the hardware of the profile.
+#
+#   uv run riscv-tools --config tools/riscv_build/config.profile-rv32e_zicsr_zimop_zicond.yaml certify
+extends: config.modular.yaml
+
+isa:
+  base: e
+
+sim:
+  parameters:
+    HAS_E: "true"
+    HAS_ZICSR: "true"
+    HAS_ZICCLSM: "false"
+    HAS_ZICNTR: "false"
+    HAS_ZIHPM: "false"
+    HAS_M: "false"
+    HAS_ZMMUL: "false"
+    HAS_ZIMOP: "true"
+    HAS_ZICOND: "true"
+
+act:
+  target_config: tools/riscv_build/act/profile-rv32e_zicsr_zimop_zicond/test_config.yaml
+  extensions: "E,Zicsr,Zimop,Zicond"

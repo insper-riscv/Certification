@@ -1,0 +1,1 @@
+sail_riscv_sim --config tools/riscv_build/act/profile-rv32em_zicclsm_zicsr_zifencei_zimop_zicond/sail.json
