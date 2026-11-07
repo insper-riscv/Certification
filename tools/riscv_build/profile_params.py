@@ -1,7 +1,28 @@
 """Parâmetros que os geradores dos alvos ACT4 compartilham: os perfis do núcleo e o que cada um liga."""
 import json
+import os
 import subprocess
 from pathlib import Path
+
+import yaml
+
+# As extensões que o platform.yaml liga como `extras` e que o gerador sabe acender: cada uma acende o genérico
+# `HAS_<NOME>` do topo e entra, nesta ordem, depois das extensões da matriz. Zihintntl e Zihintpause nunca fazem
+# parte da matriz do Core. Zimop e Zicond fazem a partir da onda 2 (a matriz do Core as traz); antes dela eram
+# extras. Como o conjunto de extensões de um perfil é só um conjunto, a lista vale para as duas versões da matriz.
+EXTRAS = ("Zimop", "Zicond", "Zihintntl", "Zihintpause")
+
+# As extensões que a matriz do Core pode trazer e que os perfis de referência não usam: a matriz de 480 perfis
+# da onda 2 é a de 120 vezes as combinações com elas, e os perfis que as citam não são gerados nem versionados.
+BEYOND_REFERENCE = frozenset({"Zimop", "Zicond"})
+
+# O checkout do ACT4 (riscv-arch-test) da imagem `ci-act4`: os testes, as gems do UDB e o `make` são do mesmo
+# commit, gravado em `<pai>/.tag` e no rótulo `act4.commit` da imagem. A variável de ambiente `ACT4_DIR` troca o
+# caminho (por exemplo, para um checkout local); é o único lugar do repositório que nomeia esse caminho.
+ACT4_DIR = Path(os.environ.get("ACT4_DIR", "/opt/riscv-foundation/act4/riscv-arch-test"))
+
+# A lista dos perfis mínimos, com o critério de cada um.
+MINIMAL = "tools/riscv_build/minimal_profiles.yaml"
 
 # A especificação dos perfis é a do Core, que vem no submódulo Insper-RISC-V.
 SPEC = "Insper-RISC-V/Core/profiles/matrix.yaml"
@@ -19,6 +40,88 @@ def variants(root: Path) -> list[tuple[str, set[str]]]:
         cwd=root, check=True, capture_output=True, text=True,
     ).stdout
     return [(p["name"], set(p["extensions"])) for p in json.loads(listing)]
+
+
+def reference_profiles(root: Path) -> list[tuple[str, set[str]]]:
+    """Lista os perfis de referência: os da matriz do Core que não citam extensões além da referência.
+
+    Com a matriz de 120 perfis é a matriz inteira; com a de 480 (que acrescenta Zimop e Zicond) são os mesmos
+    120 nomes. Os outros perfis da matriz continuam aceitos por nome (`find_profile`), mas não são gerados em
+    massa nem entram na matriz manual de todos os perfis.
+
+    Parameters
+    ----------
+    root : Path
+        Raiz do repositório.
+
+    Returns
+    -------
+    list of tuple of (str, set of str)
+        Nome e extensões de cada perfil de referência.
+    """
+    return [(name, ext) for name, ext in variants(root) if not ext & BEYOND_REFERENCE]
+
+
+def minimal_profiles(root: Path) -> list[tuple[str, set[str]]]:
+    """Lê os perfis mínimos do critério `REQUIRED_EXTENSIONS` do ACT4.
+
+    Parameters
+    ----------
+    root : Path
+        Raiz do repositório.
+
+    Returns
+    -------
+    list of tuple of (str, set of str)
+        O nome de cada perfil mínimo e o seu conjunto de extensões, na ordem do arquivo.
+    """
+    data = yaml.safe_load((root / MINIMAL).read_text())
+    return [(p["name"], set(p["extensions"])) for p in data["profiles"]]
+
+
+def minimal_tests(root: Path) -> dict[str, int]:
+    """Lê quantos ELFs o `minimal_profiles.yaml` declara para cada perfil mínimo.
+
+    Parameters
+    ----------
+    root : Path
+        Raiz do repositório.
+
+    Returns
+    -------
+    dict of {str: int}
+        O campo `tests` de cada perfil, pelo nome.
+    """
+    data = yaml.safe_load((root / MINIMAL).read_text())
+    return {p["name"]: int(p["tests"]) for p in data["profiles"]}
+
+
+def find_profile(root: Path, name: str) -> set[str]:
+    """Acha as extensões de um perfil pelo nome, entre os mínimos e os da matriz do Core.
+
+    Parameters
+    ----------
+    root : Path
+        Raiz do repositório.
+    name : str
+        Nome do perfil, como em `minimal_profiles.yaml` ou na matriz (`rv32im_zicntr`).
+
+    Returns
+    -------
+    set of str
+        As extensões do perfil.
+
+    Raises
+    ------
+    SystemExit
+        Se nenhum perfil tem esse nome.
+    """
+    known = dict(minimal_profiles(root))
+    if name not in known:
+        known.update(variants(root))
+    if name not in known:
+        raise SystemExit(f"no profile named '{name}'")
+    return known[name]
 
 
 def has_csr(ext: set[str]) -> bool:
@@ -42,6 +145,7 @@ def extension_list(ext: set[str], name: str = "rv32i") -> list[str]:
         + (["Zihpm"] if "Zihpm" in ext else [])
         + (["Zifencei"] if "Zifencei" in ext else [])
         + (["Zicclsm"] if "Zicclsm" in ext else [])
+        + [extra for extra in EXTRAS if extra in ext]
     )
 
 
@@ -58,6 +162,9 @@ def hardware_flags(ext: set[str], name: str = "rv32i") -> dict[str, str]:
     }
     if "Zifencei" in ext:
         flags["HAS_ZIFENCEI"] = True
+    for extra in EXTRAS:
+        if extra in ext:
+            flags[f"HAS_{extra.upper()}"] = True
     return {name: str(value).lower() for name, value in flags.items()}
 
 
@@ -66,37 +173,32 @@ def parameter_lines(ext: set[str], name: str = "rv32i") -> str:
     return "".join(f'    {key}: "{value}"\n' for key, value in hardware_flags(ext, name).items())
 
 
-# Do que o submódulo traz, o que a plataforma modular não usa: o controlador e o modelo de SDRAM, a
-# depuração por JTAG, o display e o topo da DE0-CV.
-_NOT_MODULAR = ("sdram", "jtag", "seg7", "seg_display", "de0_cv", "de0-cv")
-
 _MODULAR_PLATFORM = "Insper-RISC-V/src/simulation/modular"
+
+
+def _modular_sources(root: Path) -> list[str]:
+    """Lê as fontes VHDL do `config.yaml` da plataforma modular do Insper-RISC-V, na ordem de análise.
+
+    Essa lista é gerada pelo `make generate-sources` do Insper-RISC-V a partir do `provides` dos módulos, então
+    acompanha o topo modular sem filtro nenhum aqui. Os caminhos dela são relativos ao Insper-RISC-V.
+    """
+    lines = (root / _MODULAR_PLATFORM / "config.yaml").read_text().splitlines()
+    start = lines.index("  vhdl_sources:") + 1
+    listed = []
+    for line in lines[start:]:
+        if not line.startswith("    - "):
+            break
+        listed.append(f"Insper-RISC-V/{line[6:].strip()}")
+    return listed
 
 
 def write_modular_config(root: Path) -> None:
     """Escreve config.modular.yaml: a plataforma modular de simulação, com as fontes lidas do submódulo.
 
-    As fontes são as de `config.platform-de0-cv.yaml` (o núcleo, os blocos comuns, as memórias, as caches e o
-    interconector, na ordem de análise), sem o que é da SDRAM, do JTAG, do display e do topo da DE0-CV, mais o
-    chip de RAM, o pacote do mapa e o topo modular, e o topo de simulação do ACT4 desta pasta.
+    As fontes são as do `config.yaml` modular do Insper-RISC-V (o núcleo, os blocos comuns, as memórias, as
+    caches, os periféricos, o interconector e o topo modular), mais o topo de simulação do ACT4 desta pasta.
     """
-    # `riscv-tools platform sync` escreve a lista como itens `    - caminho` abaixo de `vhdl_sources:`.
-    lines = (root / "tools/riscv_build/config.platform-de0-cv.yaml").read_text().splitlines()
-    start = lines.index("  vhdl_sources:") + 1
-    listed = []
-    for line in lines[start:]:
-        if not line.startswith("  - "):
-            break
-        listed.append(line[4:].strip())
-    sources = [s for s in listed if not any(k in s for k in _NOT_MODULAR)]
-    # ram_chip depende só dos blocos comuns; entra logo depois das memórias de simulação.
-    at = sources.index(next(s for s in sources if s.endswith("rom_simulation.vhd"))) + 1
-    sources.insert(at, "Insper-RISC-V/Memory/src/RAM/SoC/ram_chip.vhd")
-    sources += [
-        f"{_MODULAR_PLATFORM}/modular_map_pkg.vhd",
-        f"{_MODULAR_PLATFORM}/modular_sim_top.vhd",
-        "tools/riscv_build/act/sim/act_modular_top.vhd",
-    ]
+    sources = [*_modular_sources(root), "tools/riscv_build/act/sim/act_modular_top.vhd"]
     listing = "".join(f"    - {s}\n" for s in sources)
     (root / "tools/riscv_build/config.modular.yaml").write_text(
         f"""# The ACT4 track on the modular simulation platform (Insper-RISC-V, src/simulation/modular): the ROM and the RAM of
@@ -135,7 +237,8 @@ sim:
     RAM_FILE: "{{ram_hex_path}}"
 
 act:
-  vendor_dir: vendor/riscv-arch-test
+  # The checkout of ACT4 in the ci-act4 image: its tests, its gems and its make are of one commit, which every run records.
+  vendor_dir: {ACT4_DIR}
   jobs: 0
   # Where the data region of the ELFs starts (the RAM) and the size of the boot ROM.
   ram_base: 0x100000

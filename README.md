@@ -14,7 +14,6 @@ Certificação do núcleo RISC-V RV32IM com a suíte oficial ACT4 ([riscv-arch-t
 
 | Caminho | Conteúdo |
 | :--- | :--- |
-| `vendor/riscv-arch-test` | Suíte oficial, em versão fixada como submódulo |
 | `tools/riscv_build/act/rv32im-min/` | Alvo modelo do DUT na plataforma modular: `test_config.yaml`, o YAML do UDB, `rvmodel_macros.h`, `link.ld` e `link-ram.ld` (a variante do teste que reescreve o próprio código) |
 | `tools/riscv_build/act/profile-*/` | Um alvo por perfil do núcleo (UDB, configuração do Sail e `test_config.yaml`), gerado por `tools/riscv_build/gen_profiles.py` |
 | `tools/riscv_build/act/sim/` | O topo `act_modular_top` e os testbenches cocotb que observam a palavra HTIF `tohost` (`test_act.py` no barramento da RAM, `test_act_sdram.py` no chip de RAM) |
@@ -22,6 +21,8 @@ Certificação do núcleo RISC-V RV32IM com a suíte oficial ACT4 ([riscv-arch-t
 | `tools/riscv_build/config.platform-*.yaml` | Configuração de cada plataforma (fontes VHDL, topo e mapa de memória), escrita por `riscv-tools platform sync` a partir do submódulo e nunca editada à mão |
 | `tools/riscv_build/config.modular.yaml` | Plataforma modular de simulação (fontes VHDL, topo e mapa de memória), escrita por `gen_profiles.py` e nunca editada à mão |
 | `tools/riscv_build/config.yaml` | Estende `config.modular.yaml` e acrescenta a seção `act:` do alvo mínimo; `config.profile-*.yaml` é a de cada perfil sem Zifencei, e `config.flash-*.yaml`, a de cada perfil com Zifencei |
+
+Os testes do ACT4, as gems do UDB e o `make` vêm da imagem `ghcr.io/insper-riscv/ci-act4:latest`, que traz o checkout do ACT4 em `/opt/riscv-foundation/act4/riscv-arch-test` (a variável de ambiente `ACT4_DIR` troca o caminho). Os testes e as gems são sempre do mesmo commit do ACT4, que a imagem grava em `/opt/riscv-foundation/act4/.tag` e que cada execução registra no resumo do job, no resultado e nas notas do release. A imagem se atualiza todo dia para o último commit verde do ACT4, e este repositório não fixa versão alguma da suíte.
 
 O VHDL vem do submódulo [Insper-RISC-V](https://github.com/insper-riscv/Insper-RISC-V), que traz o `Core` (o processador), a `Memory` (as memórias), os `Peripherals` e os topos de simulação das plataformas. Os caminhos dos arquivos de configuração das plataformas começam por `Insper-RISC-V/`, a pasta do submódulo.
 
@@ -38,7 +39,7 @@ uv sync
 riscv-tools --config tools/riscv_build/config.yaml certify
 ```
 
-As ferramentas vêm da imagem `ci-act4` do repositório [Infra](https://github.com/insper-riscv/Infra): GCC RISC-V, Spike, Sail, GHDL, uv e Ruby com Bundler e as gems do UDB do ACT4. O fluxo completo está em `.github/workflows/certification.yml`. A execução de todos os perfis, com um runner separado por perfil, está em `.github/workflows/certification-profiles.yml`; ela lê os arquivos `tools/riscv_build/config.profile-<nome>.yaml` e `tools/riscv_build/config.flash-<nome>.yaml` e aceita, no disparo manual, uma expressão regular sobre o nome do perfil.
+As ferramentas vêm da imagem `ci-act4` do repositório [Infra](https://github.com/insper-riscv/Infra): GCC RISC-V, Spike, Sail, GHDL, uv e Ruby com Bundler e as gems do UDB do ACT4. O fluxo automático (`.github/workflows/certification.yml`) certifica os perfis mínimos de `tools/riscv_build/minimal_profiles.yaml` em todos os modelos de memória e cache que o topo modular aceita. Os dois workflows manuais, `certification-profiles.yml` (todos os perfis, com chave de confirmação) e `certification-profile.yml` (um perfil e um modelo), geram o alvo em tempo de execução. Os modelos, os perfis mínimos e o dimensionamento estão em [docs/pt-br/act4/matrix.md](docs/pt-br/act4/matrix.md). O release que cada certificação aprovada publica, com os logs anexados, está descrito em [docs/pt-br/act4/release.md](docs/pt-br/act4/release.md).
 
 ---
 

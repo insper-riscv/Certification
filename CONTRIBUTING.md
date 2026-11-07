@@ -63,11 +63,15 @@ Qualquer alteração em código, configuração ou documentação deve passar se
 
 ```bash
 uv run riscv-tools --config tools/riscv_build/config.yaml certify  # Executa a suíte ACT4 contra o núcleo em simulação
+uv run riscv-tools --root . check-tree --kind certification        # Árvore do repositório
+uv run python tools/riscv_build/act_docs.py check                   # Números de docs/*/act4/matrix.md
+uv run python tools/riscv_build/act_inventory.py check              # Cobertura dos ELFs do ACT4 (dentro da imagem ci-act4)
 ```
+
+O job `tree`, de um workflow à parte, confere a árvore do repositório com `riscv-tools check-tree`.
 
 Ao adicionar, renomear ou remover qualquer arquivo versionado, atualize imediatamente:
 - `tools/riscv_build/config.yaml`
-- `vendor/riscv-arch-test` (versão fixada do submódulo)
 - `README.md`, `README.en.md` e a documentação afetada
 
 ---
