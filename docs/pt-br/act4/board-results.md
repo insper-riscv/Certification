@@ -138,6 +138,10 @@ O alvo da placa (`gen_profiles.py --profile rv32im_full_zifencei --board --out b
 | `Zmmul-mulhsu-00` | notebook | PASS |
 | `Zmmul-mulhu-00` | PC1 | PASS |
 
+## 5. Projeto gerado pelo `board generate`
+
+O bitstream do projeto que o `riscv-tools program` escreve e compila (Insper-RISC-V `a3d9d03`, núcleo e busca a 76,923 MHz, semente 5) rodou os 114 ELFs do perfil `rv32im_full_zifencei` na placa do notebook, com o `board_run.py act --host laptop`. Os 114 passaram, sem FAIL nem TIMEOUT.
+
 ---
 
 Copyright 2026 Insper. Licenciado sob a [Apache License, Version 2.0](../../../LICENSE).
