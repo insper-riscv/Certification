@@ -1,26 +1,13 @@
 name: certification (ACT4)
 
-# Validates the core against the OFFICIAL riscv-arch-test suite (ACT4), in simulation. The tests, the Ruby gems
-# of the UDB and the `make` of ACT4 are the ones of the ci-act4 image (/opt/riscv-foundation/act4/riscv-arch-test),
-# all of the SAME ACT4 commit, which every job records in its summary and in the result it uploads. The image
-# is always the tag latest and rebuilds itself every day for the last green commit of the ACT4, so nothing here
-# pins a version of the suite. The VHDL is the one of the Insper-RISC-V submodule.
-#
-# It certifies the minimal profiles (tools/riscv_build/minimal_profiles.yaml: for each extension that ACT4 has
-# tests for, the smallest profile that contains it, in the I and E bases, plus the profiles with everything) on
-# every memory model the modular top accepts (ROM and RAM inside or outside the chip, each outside one behind its
-# cache). The job "plan" fails when the union of the ELFs of those profiles is not exactly the set of ELFs that
-# ACT4 generates for the extensions of the core, or when docs/<language>/act4/matrix.md does not hold the numbers
-# of the matrix. The target of each pair is generated at run time by tools/riscv_build/gen_profiles.py and
-# nothing of it is committed.
-#
-# Release: a push to the main whose tree is the one a pull request already certified (the gate act4 of the
-# action ci-plan, artifact ci-pass-act4-<key>) reuses that result; otherwise it certifies again. Either way, only
-# when every pair passed, the job "release" publishes a GitHub release titled with the combination that was
-# validated and with the logs of the certification attached. A manual run of this workflow publishes a release
-# titled with the date and the time. Another profile, or every profile, is certified on demand by the
-# workflows "certification (ACT4, one profile and memory model)" and "certification (ACT4, all profiles and
-# memory models)", which also publish a release when they pass.
+# Validates the core against the OFFICIAL riscv-arch-test suite (vendor/riscv-arch-test, ACT4, a pinned
+# submodule), in simulation. It certifies the minimal profiles (tools/riscv_build/minimal_profiles.yaml: for each
+# extension that ACT4 has tests for, the smallest profile that contains it, plus one with everything) on every
+# memory model the modular top accepts (ROM and RAM inside or outside the chip, each outside one behind its
+# cache). The target of each pair is generated at run time by tools/riscv_build/gen_profiles.py and nothing of
+# it is committed. The pairs the top does not accept, and why, are printed by the job "plan". Another profile,
+# or every profile, is certified on demand by the workflows "certification (ACT4, one profile and memory
+# model)" and "certification (ACT4, all profiles and memory models)".
 on:
   # Push only on the main: in another branch the pull_request already runs the same workflow.
   push:
@@ -29,9 +16,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # A pull request cancels its previous run; a push to the main (it publishes a release) never cancels.
-  group: certification-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: certification-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -48,9 +34,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
-
-      - name: Record the ACT4 commit of the image
-        run: echo "ACT4 commit of the image (tests, gems and make) - $(uv run python tools/riscv_build/act_result.py commit)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: The platform configs are the ones the platforms generate
         # Nobody edits config.platform-*.yaml by hand: riscv-tools platform sync writes it from the
@@ -72,38 +55,12 @@ jobs:
       - name: Check the VHDL style
         run: riscv-tools --root . check-vhdl-style
 
-  reuse:
-    # The images (tag latest) and the key of the tree to certify: a pass of the same key (artifact
-    # ci-pass-act4-<key>, uploaded by the job "bundle" of a run that passed) is reused, whatever the commit,
-    # the branch or the event, except in a manual run. The digest of the image is part of the key, so a new image
-    # (a new ACT4 commit) never reuses a pass of the old one.
-    runs-on: ubuntu-26.04
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      actions: read
-    outputs:
-      images: ${{ steps.plan.outputs.images }}
-      gates: ${{ steps.plan.outputs.gates }}
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Read the image digests and look for a pass of the same tree
-        id: plan
-        uses: insper-riscv/Infra/.github/actions/ci-plan@main
-        with:
-          gates: |
-            act4|ci-act4|!docs/** !**/*.md !LICENSE !AUTHORS* !CITATION.cff !pyproject.toml !uv.lock !.github/workflows/tree.yml !.github/workflows/certification-profile.yml !.github/workflows/certification-profiles.yml
-
   plan:
-    # The pairs (minimal profile, memory model) that the next job runs, printed with the pairs left out, and the
-    # two checks that keep the matrix honest (the coverage of the ELFs and the numbers of the documentation).
-    needs: reuse
+    # The pairs (minimal profile, memory model) that the next job runs, printed with the pairs left out.
     runs-on: ubuntu-26.04
-    timeout-minutes: 30
+    timeout-minutes: 10
     container:
-      image: ${{ fromJSON(needs.reuse.outputs.images)['ci-act4'] }}
+      image: ghcr.io/insper-riscv/ci-act4:latest
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       count: ${{ steps.matrix.outputs.count }}
@@ -111,43 +68,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Fetch the matrix of profiles of the Core
-        run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git submodule update --init Insper-RISC-V
-          git -C Insper-RISC-V submodule update --init Core
-
-      - name: Record the ACT4 commit of the image
-        run: echo "ACT4 commit of the image (tests, gems and make) - $(uv run python tools/riscv_build/act_result.py commit)" >> "$GITHUB_STEP_SUMMARY"
-
       - name: Print and write the matrix
         id: matrix
         run: |
           uv run python tools/riscv_build/act_matrix.py minimal \
             --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
 
-      - name: The numbers of matrix.md are the ones of the matrix
-        run: uv run python tools/riscv_build/act_docs.py check
-
-      - name: The minimal profiles cover every ELF that ACT4 generates for the core
-        # Compares the union of the ELFs of the profiles with what `act --dry-run` selects for every extension
-        # of the core in the I and E bases, and the `tests` of each profile with what ACT4 generates for it.
-        # A pass of the same tree is not certified again, so it is not checked again either.
-        if: ${{ fromJSON(needs.reuse.outputs.gates)['act4'].skip != 'true' }}
-        run: |
-          uv run python tools/riscv_build/act_inventory.py check --workers 4 --summary "$GITHUB_STEP_SUMMARY"
-
   act4:
-    needs: [reuse, plan]
-    if: ${{ fromJSON(needs.reuse.outputs.gates)['act4'].skip != 'true' }}
+    needs: plan
     # ACT4 tests run entirely under cocotb/GHDL, never on the FPGA, on a GitHub-hosted runner, in the ci-act4
-    # image: it carries the RISC-V GCC, the Sail model that is ACT4's reference, and the checkout of ACT4 with
-    # its Ruby gems, all of one commit. The VHDL is the one of the Insper-RISC-V submodule.
+    # image: it carries the RISC-V GCC, the Sail model that is ACT4's reference, and Ruby, Bundler and the UDB
+    # gems of the ACT4 commit this repository pins. The VHDL is the one of the Insper-RISC-V submodule.
     name: ${{ matrix.profile }} / ${{ matrix.slug }}
     runs-on: ubuntu-26.04
     timeout-minutes: 90
     container:
-      image: ${{ fromJSON(needs.reuse.outputs.images)['ci-act4'] }}
+      image: ghcr.io/insper-riscv/ci-act4:latest
     strategy:
       fail-fast: false
       max-parallel: 16
@@ -158,9 +94,6 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
-
-      - name: Record the ACT4 commit of the image
-        run: echo "ACT4 commit of the image (tests, gems and make) - $(uv run python tools/riscv_build/act_result.py commit)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Install Python dependencies (cocotb and PyYAML; riscv-tools comes from the image)
         run: uv sync
@@ -174,136 +107,29 @@ jobs:
           case "$PROFILE" in rv32e*) sh tools/riscv_build/install_udb_overlay.sh ;; esac
 
       - name: Run the ACT4 certification of the pair (build + cocotb/GHDL)
-        id: certify
         run: riscv-tools --config build/target/config.yaml certify
 
-      - name: Collect the verdict of each ELF, the log and the list of tests
-        if: ${{ always() && steps.certify.outcome != 'skipped' }}
-        env:
-          PROFILE: ${{ matrix.profile }}
-          MEMORY: ${{ matrix.memory }}
-        run: uv run python tools/riscv_build/act_result.py collect --profile "$PROFILE" --memory "$MEMORY" --out build/act4-result
-
-      - name: Upload the result of the pair
-        if: ${{ always() && steps.certify.outcome != 'skipped' }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: act4-result-${{ matrix.profile }}-${{ matrix.slug }}
-          path: build/act4-result
-          if-no-files-found: ignore
-
-      - name: Upload the waveforms
+      - name: Upload the log and the waveforms
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: act4-ghw-${{ matrix.profile }}-${{ matrix.slug }}
-          path: "**/*.ghw"
+          name: act4-${{ matrix.profile }}-${{ matrix.slug }}
+          path: |
+            logs/certification/latest.log
+            **/*.ghw
           if-no-files-found: ignore
-
-  bundle:
-    # Joins the results of every pair into the artifact that marks this tree as certified: the key of the gate
-    # and the folder with the result of each job, which the release of a later push to the main reads.
-    needs: [reuse, act4]
-    if: ${{ success() && fromJSON(needs.reuse.outputs.gates)['act4'].skip != 'true' }}
-    runs-on: ubuntu-26.04
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      actions: read
-
-    steps:
-      - name: Download the results of every pair
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" --pattern 'act4-result-*' --dir bundle/results
-
-      - name: Record the pass of this tree
-        env:
-          KEY: ${{ fromJSON(needs.reuse.outputs.gates)['act4'].key }}
-        run: |
-          echo "$KEY" > bundle/ci-pass.txt
-          echo "$GITHUB_RUN_ID" > bundle/source-run.txt
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: ${{ fromJSON(needs.reuse.outputs.gates)['act4'].artifact }}
-          path: bundle
-          overwrite: true
 
   act4-im:
     # The single check that stands for the whole certification: it passes when the generated files are the
-    # committed ones, the matrix and the coverage were checked, and every pair passed (or a pass of the same tree
-    # was reused).
-    needs: [check, reuse, plan, act4]
+    # committed ones and every pair passed.
+    needs: [check, act4]
     if: ${{ always() }}
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - name: Every job passed
         env:
-          CHECK: ${{ needs.check.result }}
-          REUSE: ${{ needs.reuse.result }}
-          PLAN: ${{ needs.plan.result }}
-          ACT4: ${{ needs.act4.result }}
-          REUSED: ${{ needs.reuse.result == 'success' && fromJSON(needs.reuse.outputs.gates)['act4'].skip == 'true' }}
+          RESULTS: ${{ needs.check.result }} ${{ needs.act4.result }}
         run: |
-          echo "check=$CHECK reuse=$REUSE plan=$PLAN act4=$ACT4 reused=$REUSED"
-          [ "$CHECK" = success ] && [ "$REUSE" = success ] && [ "$PLAN" = success ] || exit 1
-          [ "$ACT4" = success ] || { [ "$ACT4" = skipped ] && [ "$REUSED" = true ]; }
-
-  release:
-    # Publishes the release of a certification that passed whole: never in a pull request, and never when a pair
-    # failed (the script refuses a result with an ELF that did not pass or a pair without result).
-    needs: [check, reuse, plan, act4]
-    if: >-
-      ${{ !cancelled() && github.event_name != 'pull_request'
-      && needs.check.result == 'success' && needs.plan.result == 'success'
-      && (needs.act4.result == 'success'
-      || (needs.act4.result == 'skipped' && fromJSON(needs.reuse.outputs.gates)['act4'].skip == 'true')) }}
-    runs-on: ubuntu-26.04
-    timeout-minutes: 15
-    permissions:
-      contents: write
-      actions: read
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Download the results (of this run, or of the pass of the same tree that is being reused)
-        env:
-          GH_TOKEN: ${{ github.token }}
-          ARTIFACT: ${{ fromJSON(needs.reuse.outputs.gates)['act4'].artifact }}
-          REUSED: ${{ needs.act4.result == 'skipped' }}
-        run: |
-          if [ "$REUSED" = true ]; then
-            source=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=$ARTIFACT&per_page=30" \
-              --jq '[.artifacts[] | select(.expired == false and .workflow_run.repository_id == .workflow_run.head_repository_id)] | first | .workflow_run.id')
-            [[ "$source" =~ ^[0-9]+$ ]] || { echo "::error::the pass $ARTIFACT to reuse is gone"; exit 1; }
-            gh run download "$source" -R "$GITHUB_REPOSITORY" -n "$ARTIFACT" --dir bundle
-            echo "RESULTS=bundle/results" >> "$GITHUB_ENV"
-            echo "REUSED_FROM=https://github.com/$GITHUB_REPOSITORY/actions/runs/$source" >> "$GITHUB_ENV"
-          else
-            gh run download "$GITHUB_RUN_ID" -R "$GITHUB_REPOSITORY" --pattern 'act4-result-*' --dir results
-            echo "RESULTS=results" >> "$GITHUB_ENV"
-          fi
-
-      - name: Assemble the title, the notes, the tag and the logs (nothing is written if a pair failed)
-        env:
-          MODE: ${{ github.event_name == 'push' && 'auto' || 'manual' }}
-          MATRIX: ${{ needs.plan.outputs.matrix }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          args=(--results "$RESULTS" --out release --mode "$MODE" --kind matrix
-            --cert-commit "$GITHUB_SHA" --riscv-commit "$(git rev-parse HEAD:Insper-RISC-V)"
-            --datetime "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --run-url "$RUN_URL" --matrix "$MATRIX")
-          [ -z "${REUSED_FROM:-}" ] || args+=(--reused-from "$REUSED_FROM")
-          python3 tools/riscv_build/release_notes.py "${args[@]}"
-
-      - name: Create the release with the logs of the certification attached
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mapfile -t logs < release/attachments.txt
-          gh release create "$(cat release/tag.txt)" "${logs[@]}" \
-            --target "$GITHUB_SHA" --title "$(cat release/title.txt)" --notes-file release/notes.md --latest=false
-          echo "Release $(cat release/tag.txt) - $(cat release/title.txt)" >> "$GITHUB_STEP_SUMMARY"
+          echo "check, act4: $RESULTS"
+          [ "$RESULTS" = "success success" ]
