@@ -203,7 +203,7 @@ def write_modular_config(root: Path) -> None:
     (root / "tools/riscv_build/config.modular.yaml").write_text(
         f"""# The ACT4 track on the modular simulation platform (Insper-RISC-V, src/simulation/modular): the ROM and the RAM of
 # 1 MB each, inside the chip (integrated model) or behind the caches of 4 kbit (external model, for the
-# profiles with Zifencei). Written by gen_profiles.py from config.platform-de0-cv.yaml; nobody edits it.
+# profiles with Zifencei). Written by gen_profiles.py from the config.yaml of the modular platform of the Insper-RISC-V submodule; nobody edits it.
 #
 # The VHDL comes from the Insper-RISC-V submodule; the top that cocotb drives is act_modular_top, which gives
 # the modular top the ports the testbenches of tools/riscv_build/act/sim observe.
@@ -229,7 +229,7 @@ sim:
   ghdl_std: "08"
   # In dependency order, relative to this project's root.
   vhdl_sources:
-{listing}  # The images the harness writes for each ELF: the memória de boot is the first 4 KB of the code, the ROM the
+{listing}  # The images the harness writes for each ELF: the boot memory is the first 4 KB of the code, the ROM the
   # code region and the RAM the data region.
   parameters:
     BOOT_MEMORY_FILE: "{{boot_hex_path}}"
@@ -240,7 +240,7 @@ act:
   # The checkout of ACT4 in the ci-act4 image: its tests, its gems and its make are of one commit, which every run records.
   vendor_dir: {ACT4_DIR}
   jobs: 0
-  # Where the data region of the ELFs starts (the RAM) and the size of the memória de boot.
+  # Where the data region of the ELFs starts (the RAM) and the size of the boot memory.
   ram_base: 0x100000
   boot_memory_bytes: 0x1000
 """

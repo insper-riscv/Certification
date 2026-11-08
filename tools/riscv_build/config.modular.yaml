@@ -1,6 +1,6 @@
 # The ACT4 track on the modular simulation platform (Insper-RISC-V, src/simulation/modular): the ROM and the RAM of
 # 1 MB each, inside the chip (integrated model) or behind the caches of 4 kbit (external model, for the
-# profiles with Zifencei). Written by gen_profiles.py from config.platform-de0-cv.yaml; nobody edits it.
+# profiles with Zifencei). Written by gen_profiles.py from the config.yaml of the modular platform of the Insper-RISC-V submodule; nobody edits it.
 #
 # The VHDL comes from the Insper-RISC-V submodule; the top that cocotb drives is act_modular_top, which gives
 # the modular top the ports the testbenches of tools/riscv_build/act/sim observe.
@@ -28,7 +28,6 @@ sim:
   vhdl_sources:
     - Insper-RISC-V/src/simulation/modular/modular_map_pkg.vhd
     - Insper-RISC-V/src/interconnect/ext_interconnect.vhd
-    - Insper-RISC-V/src/simulation/internal-mem/rtl/clk_gen_3way.vhd
     - Insper-RISC-V/Common-Components/src/utils_pkg.vhd
     - Insper-RISC-V/Core/src/shared/pipeline_types.vhd
     - Insper-RISC-V/Core/src/shared/byte_mask_consts.vhd
@@ -101,13 +100,8 @@ sim:
     - Insper-RISC-V/Core/src/core/stage_mem.vhd
     - Insper-RISC-V/Core/src/core/stage_wb.vhd
     - Insper-RISC-V/Core/src/core/core.vhd
-    - Insper-RISC-V/Memory/src/RAM/SoC/ram_chip.vhd
-    - Insper-RISC-V/Memory/src/RAM/SoC/onchip_ram_port.vhd
-    - Insper-RISC-V/Memory/src/RAM/SoC/ram_simulation.vhd
-    - Insper-RISC-V/Memory/src/ROM/SoC/rom_simulation.vhd
     - Insper-RISC-V/Memory/src/cache/SoC/dcache.vhd
     - Insper-RISC-V/Memory/src/cache/SoC/icache.vhd
-    - Insper-RISC-V/Memory/src/cache/SoC/flash_chip.vhd
     - Insper-RISC-V/Memory/src/cache/SoC/flash_arbiter.vhd
     - Insper-RISC-V/Memory/src/cache/SoC/mem_region_router.vhd
     - Insper-RISC-V/Memory/src/cache/SoC/ifetch_bridge.vhd
@@ -115,16 +109,21 @@ sim:
     - Insper-RISC-V/Peripherals/src/CLINT/soc/clint_consts.vhd
     - Insper-RISC-V/Peripherals/src/CLINT/soc/clint_mtime.vhd
     - Insper-RISC-V/Peripherals/src/CLINT/soc/clint.vhd
-    - Insper-RISC-V/Common-Components/src/synchronizer.vhd
-    - Insper-RISC-V/Peripherals/src/intc/soc/ext_irq_consts.vhd
-    - Insper-RISC-V/Peripherals/src/intc/soc/ext_irq_controller.vhd
+    - Insper-RISC-V/Peripherals/src/PLIC/soc/plic_consts.vhd
+    - Insper-RISC-V/Peripherals/src/PLIC/soc/plic_gateway.vhd
+    - Insper-RISC-V/Peripherals/src/PLIC/soc/plic_arbiter.vhd
+    - Insper-RISC-V/Peripherals/src/PLIC/soc/plic.vhd
     - Insper-RISC-V/Common-Components/src/tristate_buffer_1bit.vhd
+    - Insper-RISC-V/Peripherals/src/TIMER/soc/counter_overflow.vhd
+    - Insper-RISC-V/Peripherals/src/TIMER/soc/clock_prescaler.vhd
+    - Insper-RISC-V/Peripherals/src/TIMER/soc/timer_operation_decoder.vhd
+    - Insper-RISC-V/Peripherals/src/TIMER/soc/timer.vhd
+    - Insper-RISC-V/Common-Components/src/synchronizer.vhd
     - Insper-RISC-V/Peripherals/src/GPIO/soc/gpio_operation_decoder.vhd
     - Insper-RISC-V/Peripherals/src/GPIO/soc/gpio_cell.vhd
     - Insper-RISC-V/Peripherals/src/GPIO/soc/gpio.vhd
     - Insper-RISC-V/Peripherals/src/display/soc/hex_to_seg7.vhd
     - Insper-RISC-V/Peripherals/src/display/soc/seg_display.vhd
-    - Insper-RISC-V/Peripherals/src/UART/jtag/jtag_uart.vhd
     - Insper-RISC-V/Peripherals/src/UART/serial/vendor/opencores_uart2bus/uart2BusTop_pkg.vhd
     - Insper-RISC-V/Peripherals/src/UART/serial/vendor/opencores_uart2bus/baudGen.vhd
     - Insper-RISC-V/Peripherals/src/UART/serial/vendor/opencores_uart2bus/uartRx.vhd
@@ -132,6 +131,17 @@ sim:
     - Insper-RISC-V/Peripherals/src/UART/serial/vendor/opencores_uart2bus/uartTop.vhd
     - Insper-RISC-V/Peripherals/src/UART/serial/uart_fifo.vhd
     - Insper-RISC-V/Peripherals/src/UART/serial/uart.vhd
+    - Insper-RISC-V/Peripherals/src/UART/jtag/jtag_uart.vhd
+    - Insper-RISC-V/Peripherals/src/UART/console/console.vhd
+    - Insper-RISC-V/Peripherals/src/flash-controller/soc/flash_controller.vhd
+    - Insper-RISC-V/src/soc/soc.vhd
+    - Insper-RISC-V/src/simulation/internal-mem/rtl/clk_gen_3way.vhd
+    - Insper-RISC-V/Memory/src/latency/SoC/latency_counter.vhd
+    - Insper-RISC-V/Memory/src/RAM/SoC/onchip_ram_port.vhd
+    - Insper-RISC-V/Memory/src/RAM/SoC/ram_chip.vhd
+    - Insper-RISC-V/Memory/src/RAM/SoC/ram_simulation.vhd
+    - Insper-RISC-V/Memory/src/ROM/SoC/rom_simulation.vhd
+    - Insper-RISC-V/Memory/src/cache/SoC/flash_chip.vhd
     - Insper-RISC-V/src/simulation/modular/modular_sim_top.vhd
     - tools/riscv_build/act/sim/act_modular_top.vhd
   # The images the harness writes for each ELF: the boot memory is the first 4 KB of the code, the ROM the
