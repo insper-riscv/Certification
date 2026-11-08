@@ -7,9 +7,9 @@
 | Item | Valor |
 | :--- | :--- |
 | Perfil | `rv32im_full_zifencei`: I, M, Zmmul, Zicsr, Zicntr, Zihpm, Zifencei, Zicclsm, Zimop, Zicond, Zihintntl e Zihintpause |
-| Bitstream | `de0-cv.sof` do Insper-RISC-V `ceea999` (FLASH de duas portas regravada pelo carregador JTAG, controlador de FLASH e PLIC no topo), clock do núcleo de 50 MHz |
+| Execução 1 | `de0-cv.sof` do Insper-RISC-V `ceea999` (FLASH de duas portas regravada pelo carregador JTAG, controlador de FLASH e PLIC no topo), clock do núcleo de 50 MHz, notebook e PC1 em paralelo, ELFs repartidos por `--part 0/2` e `1/2` |
+| Execução 2 | projeto gerado pelo `board generate` (Insper-RISC-V `a3d9d03`), núcleo e busca a 76,923 MHz (`pll.core_clock_hz` da DE0-CV), placa do notebook |
 | ACT4 | `riscv-arch-test` fixado em `vendor/`, Sail como modelo de referência |
-| Placas | notebook e PC1 em paralelo, ELFs repartidos por `--part 0/2` e `1/2` |
 
 ## 2. Alvo da placa
 
@@ -17,9 +17,9 @@ O alvo da placa (`gen_profiles.py --profile rv32im_full_zifencei --board --out b
 
 ## 3. Resumo
 
-114 de 114 ELFs passaram, 57 em cada placa.
+Nas duas execuções, 114 de 114 ELFs passaram, sem FAIL nem TIMEOUT. Na execução 1 foram 57 em cada placa.
 
-## 4. Veredito por ELF
+## 4. Veredito por ELF da execução 1
 
 | ELF | Placa | Veredito |
 | :--- | :--- | :--- |
@@ -138,9 +138,13 @@ O alvo da placa (`gen_profiles.py --profile rv32im_full_zifencei --board --out b
 | `Zmmul-mulhsu-00` | notebook | PASS |
 | `Zmmul-mulhu-00` | PC1 | PASS |
 
-## 5. Projeto gerado pelo `board generate`
+## 5. Execução 2, projeto gerado pelo `board generate`
 
 O bitstream do projeto que o `riscv-tools program` escreve e compila (Insper-RISC-V `a3d9d03`, núcleo e busca a 76,923 MHz, semente 5) rodou os 114 ELFs do perfil `rv32im_full_zifencei` na placa do notebook, com o `board_run.py act --host laptop`. Os 114 passaram, sem FAIL nem TIMEOUT.
+
+## 6. Demais placas
+
+O alvo da placa gerado por `gen_profiles.py --board` cobre a DE0-CV. O ACT4 na DE2-115, na DE0-Nano e na DE10-Lite (núcleo a 50 MHz) a executar: cada uma precisa do `config.platform-<placa>.yaml` regenerado por `riscv-tools platform sync` e do alvo da placa, e o resultado entra nesta página ao ser obtido.
 
 ---
 
