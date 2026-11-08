@@ -38,8 +38,8 @@ def test_spec_round_trip() -> None:
         memory_models.parse("rom=int,ram=int,icache=on,dcache=maybe")
 
 
-def test_minimal_matrix_has_62_jobs() -> None:
-    """Os 17 perfis mínimos dão 15 x 4 + 2 x 1 pares aceitos."""
+def test_minimal_matrix_has_63_jobs() -> None:
+    """Os 18 perfis mínimos dão 15 x 4 + 3 x 1 pares aceitos (os 3 com Zifencei rodam em um só modelo)."""
     profiles = minimal_profiles(ROOT)
     jobs = [
         (name, m)
@@ -47,5 +47,5 @@ def test_minimal_matrix_has_62_jobs() -> None:
         for m in memory_models.all_models()
         if not memory_models.problems(m, ext)
     ]
-    assert len(profiles) == 17
-    assert len(jobs) == 62
+    assert len(profiles) == 18
+    assert len(jobs) == 63

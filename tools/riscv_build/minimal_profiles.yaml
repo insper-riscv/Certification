@@ -1,11 +1,12 @@
 # The minimal profiles of the automatic certification: for every extension that ACT4 has a test folder for, the
 # smallest profile whose set of extensions contains the REQUIRED_EXTENSIONS of that folder (the test header of the
-# pinned vendor/riscv-arch-test lists them), plus one profile with everything the core implements. Each profile is
+# ACT4 checkout of the ci-act4 image lists them), plus the profiles with everything the core implements (one per base). Each profile is
 # certified on every memory model that the modular top accepts (memory_models.py) and that the profile can use.
 #
-# `extensions` lists what the profile adds to the base of its name (I for rv32i, E for rv32e). The ones that
-# the matrix of the Core (Insper-RISC-V/Core/profiles/matrix.yaml) does not know (Zimop, Zicond, Zihintntl and
-# Zihintpause, the `extras` of a platform) are written here and only here. `tests` counts the ACT4 tests whose
+# `extensions` lists what the profile adds to the base of its name (I for rv32i, E for rv32e). Zihintntl and
+# Zihintpause are not in the matrix of the Core (Insper-RISC-V/Core/profiles/matrix.yaml), they are the `extras` of a
+# platform, and are written here and only here; Zimop and Zicond are extras of the matrix before wave 2 and part of
+# it from then on, and the profiles below name them the same way in both cases. `tests` counts the ACT4 tests whose
 # REQUIRED_EXTENSIONS the profile covers (the ones of the extensions below it included).
 profiles:
   - {name: rv32i,              extensions: [],                     tests: 39,  covers: "tests/rv32i/I"}
@@ -19,7 +20,14 @@ profiles:
   - {name: rv32i_zicond,       extensions: [Zicond],               tests: 41,  covers: "tests/rv32i/Zicond"}
   - {name: rv32i_zihintntl,    extensions: [Zihintntl],            tests: 43,  covers: "tests/rv32i/Zihintntl"}
   - {name: rv32i_zihintpause,  extensions: [Zihintpause],          tests: 40,  covers: "tests/rv32i/Zihintpause"}
+  - {name: rv32e,              extensions: [],                     tests: 39,  covers: "tests/rv32e/E"}
+  - {name: rv32em,             extensions: [M],                    tests: 51,  covers: "tests/rv32e/M"}
+  - {name: rv32e_zmmul,        extensions: [Zmmul],                tests: 43,  covers: "tests/rv32e/Zmmul (the RTL variant that multiplies without dividing)"}
   # Everything the core implements, without Zifencei, so that it runs on every memory model.
-  - {name: rv32im_full,        extensions: [M, Zicclsm, Zicntr, Zihpm, Zimop, Zicond, Zihintntl, Zihintpause], tests: 113, covers: "every folder above together"}
+  - {name: rv32im_full,        extensions: [M, Zicclsm, Zicntr, Zihpm, Zimop, Zicond, Zihintntl, Zihintpause], tests: 113, covers: "all folders of the base together"}
   # The same with Zifencei, which only the model with both memories external can run.
-  - {name: rv32im_full_zifencei, extensions: [M, Zicclsm, Zicntr, Zihpm, Zifencei, Zimop, Zicond, Zihintntl, Zihintpause], tests: 114, covers: "every folder above together, with Zifencei"}
+  - {name: rv32im_full_zifencei, extensions: [M, Zicclsm, Zicntr, Zihpm, Zifencei, Zimop, Zicond, Zihintntl, Zihintpause], tests: 114, covers: "all folders of the base together, with Zifencei"}
+  # The same two for the E base. ACT4 has tests only for E, M and Zmmul on RV32E (the other folders require I), so
+  # these profiles run the same 51 ELFs as rv32em, but with the hardware of the whole core turned on.
+  - {name: rv32em_full,        extensions: [M, Zicclsm, Zicntr, Zihpm, Zimop, Zicond, Zihintntl, Zihintpause], tests: 51, covers: "all folders of the base together, with every extension of the core turned on"}
+  - {name: rv32em_full_zifencei, extensions: [M, Zicclsm, Zicntr, Zihpm, Zifencei, Zimop, Zicond, Zihintntl, Zihintpause], tests: 51, covers: "all folders of the base together, with Zifencei"}
