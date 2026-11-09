@@ -44,8 +44,8 @@ def sim_config(target: str, extensions: str, params: str, ram_variant: bool, rtg
         f"{isa}"
         "sim:\n"
         "  parameters:\n"
-        # the code of the ELF from address 0 is also the image of the boot ROM, which holds its first 4 KB
-        '    BOOT_ROM_FILE: "{hex_path}"\n'
+        # the code of the ELF from address 0 is also the image of the boot memory, which holds its first 4 KB
+        '    BOOT_MEMORY_FILE: "{hex_path}"\n'
         '    ROM_FILE: "{hex_path}"\n'
         '    RAM_FILE: "{sdram_hex_path}"\n'
         '    ROM_EXTERNAL: "true"\n'
@@ -57,7 +57,7 @@ def sim_config(target: str, extensions: str, params: str, ram_variant: bool, rtg
         f'  extensions: "{extensions}"\n'
         f"{ram_lines}"
         "  # The code is in the ROM, behind the instruction cache, and the data in the RAM, behind the data cache; the\n"
-        "  # images start at the address 0 of the ROM (the boot ROM stub is in the first 4 KB) and at the base of the RAM.\n"
+        "  # images start at the address 0 of the ROM (the boot memory stub is in the first 4 KB) and at the base of the RAM.\n"
         "  flash_base: 0x0\n"
         "  sdram_base: 0x100000\n"
     )

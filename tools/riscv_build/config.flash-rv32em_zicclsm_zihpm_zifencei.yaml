@@ -9,7 +9,7 @@ isa:
 
 sim:
   parameters:
-    BOOT_ROM_FILE: "{hex_path}"
+    BOOT_MEMORY_FILE: "{hex_path}"
     ROM_FILE: "{hex_path}"
     RAM_FILE: "{sdram_hex_path}"
     ROM_EXTERNAL: "true"
@@ -27,6 +27,6 @@ act:
   target_config: tools/riscv_build/act/flash-rv32em_zicclsm_zihpm_zifencei/test_config.yaml
   extensions: "E,M,Zmmul,Zicsr,Zihpm,Zifencei,Zicclsm"
   # The code is in the ROM, behind the instruction cache, and the data in the RAM, behind the data cache; the
-  # images start at the address 0 of the ROM (the boot ROM stub is in the first 4 KB) and at the base of the RAM.
+  # images start at the address 0 of the ROM (the boot memory stub is in the first 4 KB) and at the base of the RAM.
   flash_base: 0x0
   sdram_base: 0x100000

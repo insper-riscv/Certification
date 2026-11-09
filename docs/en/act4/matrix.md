@@ -96,7 +96,7 @@ The target of a profile (UDB, `sail.json`, `test_config.yaml` and linker) does n
 
 | RAM model | Images | Testbench |
 | :--- | :--- | :--- |
-| `int` | Three images: BOOT_ROM, ROM and RAM | `test_act.py`, which watches the RAM write bus of the core |
+| `int` | Three images: BOOT_MEMORY, ROM and RAM | `test_act.py`, which watches the RAM write bus of the core |
 | `ext` | FLASH image and RAM chip image (`flash_base` and `sdram_base`) | `test_act_sdram.py`, which reads `tohost` from the chip through the debug port |
 
 The `ROM_EXTERNAL` and `RAM_EXTERNAL` generics of `act_modular_top` follow the model. A profile with Zifencei also gets the `-ram` target, with the body of the test in the RAM, and `config.yaml` declares it in `ram_tests`. RV32E profiles need the UDB overlay (`sh tools/riscv_build/install_udb_overlay.sh`) before `certify`.

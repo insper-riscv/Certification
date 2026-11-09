@@ -6,7 +6,7 @@ extends: config.modular.yaml
 
 sim:
   parameters:
-    BOOT_ROM_FILE: "{hex_path}"
+    BOOT_MEMORY_FILE: "{hex_path}"
     ROM_FILE: "{hex_path}"
     RAM_FILE: "{sdram_hex_path}"
     ROM_EXTERNAL: "true"
@@ -28,6 +28,6 @@ act:
   ram_target_config: tools/riscv_build/act/flash-ram-rv32i_zicclsm_zihpm_zifencei_zmmul/test_config.yaml
   ram_extensions: "Zifencei"
   # The code is in the ROM, behind the instruction cache, and the data in the RAM, behind the data cache; the
-  # images start at the address 0 of the ROM (the boot ROM stub is in the first 4 KB) and at the base of the RAM.
+  # images start at the address 0 of the ROM (the boot memory stub is in the first 4 KB) and at the base of the RAM.
   flash_base: 0x0
   sdram_base: 0x100000

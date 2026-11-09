@@ -29,7 +29,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import memory_models
 from profile_params import extension_list, find_profile, is_e, parameter_lines, reference_profiles, write_modular_config
-from target_gen import BASE, write_generated, write_target
+from target_gen import BASE, write_board, write_generated, write_target
 
 parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n")[0])
 parser.add_argument("root", nargs="?", default=None, help="root of the repository (default: the current folder)")
@@ -37,12 +37,20 @@ parser.add_argument("--profile", help="generate the target of this profile at ru
 parser.add_argument("--memory", help="memory model of the generated target (rom=int|ext,ram=int|ext,icache=on|off,dcache=on|off)")
 parser.add_argument("--out", help="folder that receives the generated target and its config.yaml")
 parser.add_argument("--jobs", type=int, help="act.jobs of the generated config (JOBS= of the make of ACT4; 0 is automatic)")
+parser.add_argument("--board", action="store_true", help="generate the target for the DE0-CV board (memory map of the board; no --memory)")
 args = parser.parse_args()
 
 root = Path(args.root) if args.root else Path.cwd()
 rb = root / "tools/riscv_build"
 
 if args.profile is not None:
+    if args.board:
+        if args.memory or not args.out:
+            parser.error("--board needs --profile and --out, and takes no --memory")
+        out = Path(args.out)
+        out = out if out.is_absolute() else root / out
+        print(write_board(root, out.resolve(), args.profile, find_profile(root, args.profile), args.jobs))
+        sys.exit(0)
     if not (args.memory and args.out):
         parser.error("--profile needs --memory and --out")
     if not re.fullmatch(r"[A-Za-z0-9_]+", args.profile):
@@ -61,8 +69,8 @@ if args.profile is not None:
     out = out if out.is_absolute() else root / out
     print(write_generated(root, out.resolve(), args.profile, extensions, model, args.jobs))
     sys.exit(0)
-if args.memory or args.out or args.jobs is not None:
-    parser.error("--memory, --out and --jobs need --profile")
+if args.memory or args.out or args.jobs is not None or args.board:
+    parser.error("--memory, --out, --jobs and --board need --profile")
 
 # The profiles come from the specification of the core (riscv-tools profiles), which is in the
 # Insper-RISC-V submodule (profile_params.py).
