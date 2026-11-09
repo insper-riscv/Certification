@@ -24,9 +24,9 @@ on:
         required: false
         default: "2"
       max-parallel:
-        description: "How many simulated jobs run at the same time"
+        description: "How many simulated jobs run at the same time (1 to 10; the organization runs at most 60 jobs at once, shared by every repository)"
         required: false
-        default: "10"
+        default: "6"
       memory:
         description: "Memory model: all, or one of the models the top accepts"
         type: choice
@@ -89,8 +89,8 @@ jobs:
           [ "$TARGET" = "simulated" ] || { echo "::error::target must be simulated or real"; exit 1; }
           printf '%s' "$JOBS" | grep -Eq '^[0-9]{1,2}$' || { echo "::error::jobs must be a number from 0 to 64"; exit 1; }
           [ "$JOBS" -le 64 ] || { echo "::error::jobs must be a number from 0 to 64"; exit 1; }
-          printf '%s' "$MAX_PARALLEL" | grep -Eq '^[0-9]{1,2}$' || { echo "::error::max-parallel must be a number from 1 to 20"; exit 1; }
-          { [ "$MAX_PARALLEL" -ge 1 ] && [ "$MAX_PARALLEL" -le 20 ]; } || { echo "::error::max-parallel must be a number from 1 to 20"; exit 1; }
+          printf '%s' "$MAX_PARALLEL" | grep -Eq '^[0-9]{1,2}$' || { echo "::error::max-parallel must be a number from 1 to 10"; exit 1; }
+          { [ "$MAX_PARALLEL" -ge 1 ] && [ "$MAX_PARALLEL" -le 10 ]; } || { echo "::error::max-parallel must be a number from 1 to 10"; exit 1; }
           printf '%s' "$MEMORY" | grep -Eq '^(all|rom=(int|ext),ram=(int|ext),icache=(on|off),dcache=(on|off))$' || { echo "::error::memory is not a valid model"; exit 1; }
           printf '%s' "$ONLY" | grep -Eq '^[A-Za-z0-9_|^$.*+?()/-]{0,200}$' || { echo "::error::only holds characters outside the allowed set"; exit 1; }
           echo "jobs=$JOBS" >> "$GITHUB_OUTPUT"
@@ -113,6 +113,15 @@ jobs:
           uv run python tools/riscv_build/act_matrix.py all \
             --memory "$MEMORY" --only "$ONLY" \
             --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Refuse a matrix over the limit of 256 jobs of a run
+        env:
+          COUNT: ${{ steps.matrix.outputs.count }}
+        run: |
+          if [ "$COUNT" -gt 256 ]; then
+            echo "::error::the matrix has $COUNT jobs and GitHub allows 256 per run; narrow it with the inputs memory or only"
+            exit 1
+          fi
 
   act4:
     needs: plan
@@ -159,3 +168,4 @@ jobs:
             logs/certification/latest.log
             **/*.ghw
           if-no-files-found: ignore
+          retention-days: 3
