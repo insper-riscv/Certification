@@ -1,6 +1,6 @@
 [project]
 name = "riscv-certification"
-version = "0.4.0"
+version = "0.4.1"
 description = "ACT4 (riscv-arch-test) certification of the RV32IM core, driven by riscv-tools (installed in the CI image)."
 license = "Apache-2.0"
 # Same Python as the ci-* images of Infra, which also carry riscv-tools.

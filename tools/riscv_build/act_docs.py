@@ -30,7 +30,7 @@ _GEN = re.compile(r"<!-- gen:(\w+) -->(.*?)<!-- /gen -->", re.DOTALL)
 
 # Segundos de simulação por ELF, medidos nos jobs de `rv32im_full` (cada teste reanalisa o VHDL); o `max-parallel` do workflow.
 _SECONDS_PER_ELF = 10
-_MAX_PARALLEL = 16
+_MAX_PARALLEL = 8
 
 _TEXT = {
     "pt-br": {
