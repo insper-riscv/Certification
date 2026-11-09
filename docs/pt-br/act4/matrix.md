@@ -107,7 +107,7 @@ Os genéricos `ROM_EXTERNAL` e `RAM_EXTERNAL` do `act_modular_top` acompanham o 
 
 | Workflow | Disparo | Cruza | Controles |
 | :--- | :--- | :--- | :--- |
-| `certification (ACT4)` | `pull_request`, `push` na `main` | Os <!-- gen:profiles -->18<!-- /gen --> perfis mínimos com os modelos aceitos (<!-- gen:jobs -->63<!-- /gen --> jobs) | `max-parallel` de 16, `concurrency` por ramo, `act.jobs` de 4 |
+| `certification (ACT4)` | `pull_request`, `push` na `main` | Os <!-- gen:profiles -->18<!-- /gen --> perfis mínimos com os modelos aceitos (<!-- gen:jobs -->63<!-- /gen --> jobs) | `max-parallel` de 8, `concurrency` por ramo, `act.jobs` de 4 |
 | `certification (ACT4, all profiles and memory models)` | Manual, com chave | Todos os perfis (os 120 de referência da matriz do Core, sem Zimop e Zicond, e os mínimos) com os modelos aceitos | `confirmation` (valor do segredo `CERTIFICATION_RUN_SECRET`), `target`, `jobs`, `max-parallel`, `memory`, `only` |
 | `certification (ACT4, one profile and memory model)` | Manual | Um perfil e um modelo | `profile`, `memory`, `target`, `jobs` |
 
@@ -128,7 +128,7 @@ Cada job simula os testes do perfil um a um, e cada teste reanalisa o VHDL antes
 
 A tabela traz pares rodados com `--jobs 6` em contêineres de 6 CPUs, cada um com a imagem `ci-act4`; todos os testes passaram. O tempo é de parede, e a RAM de pico é a do maior processo da simulação. Com a RAM interna (arquiteturas `A` e `C`) o pico é de 5,9 GiB, e com a RAM externa (`B` e `D`) de 3,0 GiB. Um teste leva de 8 a 10 s, quase todo na análise do VHDL.
 
-Os <!-- gen:jobs -->63<!-- /gen --> jobs do workflow automático somam <!-- gen:runs -->3289<!-- /gen --> execuções de teste, cerca de <!-- gen:hours -->9<!-- /gen --> horas de simulação, sem contar o checkout recursivo, o `uv sync` e a geração dos ELFs. Com `max-parallel` de 16 a estimativa para a certificação é da ordem de <!-- gen:wall -->1<!-- /gen --> h, e o maior job leva cerca de 15 minutos de simulação (<!-- gen:largest -->`rv32im_full_zifencei`<!-- /gen -->, com <!-- gen:largest_tests -->114<!-- /gen --> testes). O testbench da RAM interna espera até 8 milhões de ciclos pelo `tohost`, porque a ROM externa atrás da cache de instruções multiplica a duração dos testes longos. O limite de memória de um runner padrão do GitHub (16 GiB) comporta qualquer job.
+Os <!-- gen:jobs -->63<!-- /gen --> jobs do workflow automático somam <!-- gen:runs -->3289<!-- /gen --> execuções de teste, cerca de <!-- gen:hours -->9<!-- /gen --> horas de simulação, sem contar o checkout recursivo, o `uv sync` e a geração dos ELFs. Com `max-parallel` de 8 a estimativa para a certificação é da ordem de <!-- gen:wall -->2<!-- /gen --> h, e o maior job leva cerca de 15 minutos de simulação (<!-- gen:largest -->`rv32im_full_zifencei`<!-- /gen -->, com <!-- gen:largest_tests -->114<!-- /gen --> testes). O testbench da RAM interna espera até 8 milhões de ciclos pelo `tohost`, porque a ROM externa atrás da cache de instruções multiplica a duração dos testes longos. O limite de memória de um runner padrão do GitHub (16 GiB) comporta qualquer job.
 
 ---
 

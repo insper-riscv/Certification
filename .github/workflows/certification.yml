@@ -86,7 +86,8 @@ jobs:
       image: ghcr.io/insper-riscv/ci-act4:latest
     strategy:
       fail-fast: false
-      max-parallel: 16
+      # The organization (plan Team) runs at most 60 jobs at once, shared by every repository: 8 leaves room for the others.
+      max-parallel: 8
       matrix:
         include: ${{ fromJSON(needs.plan.outputs.matrix) }}
 
@@ -118,6 +119,7 @@ jobs:
             logs/certification/latest.log
             **/*.ghw
           if-no-files-found: ignore
+          retention-days: 3
 
   act4-im:
     # The single check that stands for the whole certification: it passes when the generated files are the
