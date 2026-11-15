@@ -24,9 +24,9 @@ on:
         required: false
         default: "2"
       max-parallel:
-        description: "How many simulated jobs run at the same time (1 to 10; the organization runs at most 60 jobs at once, shared by every repository)"
+        description: "How many simulated jobs run at the same time (1 to 10; only 4 self-hosted runners carry the label cert, so more than 4 only queue)"
         required: false
-        default: "6"
+        default: "4"
       memory:
         description: "Memory model: all, or one of the models the top accepts"
         type: choice
@@ -129,7 +129,9 @@ jobs:
     # GCC, the Sail model that is ACT4's reference, and Ruby, Bundler and the UDB gems of the ACT4 commit this
     # repository pins. The VHDL is the one of the Insper-RISC-V submodule.
     name: ${{ matrix.profile }} / ${{ matrix.slug }}
-    runs-on: ubuntu-26.04
+    # Self-hosted runners labeled cert (one per workstation, one job at a time) unless the organization variable
+    # RUNNERS_CERT is "hosted" or the pull request comes from a fork.
+    runs-on: ${{ (vars.RUNNERS_CERT == 'hosted' || github.event.pull_request.head.repo.fork) && 'ubuntu-26.04' || fromJSON('["self-hosted","cert"]') }}
     timeout-minutes: 120
     container:
       image: ghcr.io/insper-riscv/ci-act4:latest
