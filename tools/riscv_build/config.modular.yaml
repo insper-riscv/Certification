@@ -26,9 +26,11 @@ sim:
   ghdl_std: "08"
   # In dependency order, relative to this project's root.
   vhdl_sources:
-    - Insper-RISC-V/src/simulation/modular/modular_map_pkg.vhd
-    - Insper-RISC-V/src/interconnect/ext_interconnect.vhd
     - Insper-RISC-V/Common-Components/src/utils_pkg.vhd
+    - Insper-RISC-V/src/simulation/modular/config_pkg.vhd
+    - Insper-RISC-V/src/simulation/modular/modular_map_pkg.vhd
+    - Insper-RISC-V/base/src/interconnect/interconnect_pkg.vhd
+    - Insper-RISC-V/base/src/interconnect/ext_interconnect.vhd
     - Insper-RISC-V/Core/src/shared/pipeline_types.vhd
     - Insper-RISC-V/Core/src/shared/byte_mask_consts.vhd
     - Insper-RISC-V/Core/src/shared/opcode_consts.vhd
@@ -60,6 +62,9 @@ sim:
     - Insper-RISC-V/Common-Components/src/mux_4x1.vhd
     - Insper-RISC-V/Common-Components/src/mux_8x1.vhd
     - Insper-RISC-V/Common-Components/src/mux_tree.vhd
+    - Insper-RISC-V/Common-Components/src/mux_16x1.vhd
+    - Insper-RISC-V/Common-Components/src/mux_32x1.vhd
+    - Insper-RISC-V/Common-Components/src/mux_64x1.vhd
     - Insper-RISC-V/Common-Components/src/onehot_decoder.vhd
     - Insper-RISC-V/Core/src/shared/reg_file.vhd
     - Insper-RISC-V/Core/src/shared/control_unit.vhd
@@ -84,7 +89,7 @@ sim:
     - Insper-RISC-V/Core/src/Zicclsm/misaligned_unit.vhd
     - Insper-RISC-V/Core/src/Zicond/zicond_decode.vhd
     - Insper-RISC-V/Core/src/Zicond/zicond_unit.vhd
-    - Insper-RISC-V/Core/src/Zicntr/counter64.vhd
+    - Insper-RISC-V/Common-Components/src/counter64.vhd
     - Insper-RISC-V/Core/src/Zicntr/tick_divider.vhd
     - Insper-RISC-V/Core/src/Zihpm/hpm_counter_bank.vhd
     - Insper-RISC-V/Core/src/Zicsr/csr_decode.vhd
@@ -100,6 +105,7 @@ sim:
     - Insper-RISC-V/Core/src/core/stage_mem.vhd
     - Insper-RISC-V/Core/src/core/stage_wb.vhd
     - Insper-RISC-V/Core/src/core/core.vhd
+    - Insper-RISC-V/Memory/src/cache/SoC/cache_pkg.vhd
     - Insper-RISC-V/Memory/src/cache/SoC/dcache.vhd
     - Insper-RISC-V/Memory/src/cache/SoC/icache.vhd
     - Insper-RISC-V/Memory/src/cache/SoC/flash_arbiter.vhd
@@ -107,7 +113,6 @@ sim:
     - Insper-RISC-V/Memory/src/cache/SoC/ifetch_bridge.vhd
     - Insper-RISC-V/Peripherals/src/TIMER/soc/alu_ge_unsigned.vhd
     - Insper-RISC-V/Peripherals/src/CLINT/soc/clint_consts.vhd
-    - Insper-RISC-V/Peripherals/src/CLINT/soc/clint_mtime.vhd
     - Insper-RISC-V/Peripherals/src/CLINT/soc/clint.vhd
     - Insper-RISC-V/Peripherals/src/PLIC/soc/plic_consts.vhd
     - Insper-RISC-V/Peripherals/src/PLIC/soc/plic_gateway.vhd
@@ -119,8 +124,10 @@ sim:
     - Insper-RISC-V/Peripherals/src/TIMER/soc/timer_operation_decoder.vhd
     - Insper-RISC-V/Peripherals/src/TIMER/soc/timer.vhd
     - Insper-RISC-V/Common-Components/src/synchronizer.vhd
+    - Insper-RISC-V/Peripherals/src/GPIO/soc/gpio_pkg.vhd
     - Insper-RISC-V/Peripherals/src/GPIO/soc/gpio_operation_decoder.vhd
     - Insper-RISC-V/Peripherals/src/GPIO/soc/gpio_cell.vhd
+    - Insper-RISC-V/Peripherals/src/GPIO/soc/gpio_group.vhd
     - Insper-RISC-V/Peripherals/src/GPIO/soc/gpio.vhd
     - Insper-RISC-V/Peripherals/src/display/soc/hex_to_seg7.vhd
     - Insper-RISC-V/Peripherals/src/display/soc/seg_display.vhd
@@ -134,9 +141,10 @@ sim:
     - Insper-RISC-V/Peripherals/src/UART/jtag/jtag_uart.vhd
     - Insper-RISC-V/Peripherals/src/UART/console/console.vhd
     - Insper-RISC-V/Peripherals/src/flash-controller/soc/flash_controller.vhd
-    - Insper-RISC-V/src/soc/soc.vhd
+    - Insper-RISC-V/base/src/soc/soc.vhd
     - Insper-RISC-V/src/simulation/internal-mem/rtl/clk_gen_3way.vhd
     - Insper-RISC-V/Memory/src/latency/SoC/latency_counter.vhd
+    - Insper-RISC-V/Memory/src/RAM/SoC/ram_pkg.vhd
     - Insper-RISC-V/Memory/src/RAM/SoC/onchip_ram_port.vhd
     - Insper-RISC-V/Memory/src/RAM/SoC/ram_chip.vhd
     - Insper-RISC-V/Memory/src/RAM/SoC/ram_simulation.vhd
