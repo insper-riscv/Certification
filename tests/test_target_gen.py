@@ -63,3 +63,18 @@ def test_generators_import_only_existing_names(script: str) -> None:
         if isinstance(node, ast.ImportFrom) and node.module in {"profile_params", "target_gen"}:
             module = __import__(node.module)
             assert all(hasattr(module, alias.name) for alias in node.names)
+
+
+@pytest.mark.parametrize(
+    ("name", "ext", "expected"),
+    [
+        ("rv32i", set(), "rv32i"),
+        ("rv32im_full", {"M", "Zicclsm", "Zicntr", "Zihpm", "Zimop"}, "rv32im_zicclsm_zicntr_zihpm"),
+        ("rv32em_full_zifencei", {"M", "Zicntr", "Zifencei"}, "rv32im_zicntr_zifencei"),
+        ("rv32e_zmmul", {"Zmmul"}, "rv32i_zmmul"),
+        ("rv32i_zihintntl", {"Zihintntl"}, "rv32i"),
+    ],
+)
+def test_matrix_profile_name(name: str, ext: set[str], expected: str) -> None:
+    """O nome da matriz sai das extensões, sem apelidos de cobertura, sem extras e sempre com a base I."""
+    assert target_gen.matrix_profile_name(name, ext) == expected

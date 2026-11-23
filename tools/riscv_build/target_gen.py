@@ -192,6 +192,22 @@ def _relative(path: Path, root: Path) -> str:
 _MODULAR_CONFIG = "Insper-RISC-V/src/simulation/modular/config.yaml"
 
 
+def matrix_profile_name(name: str, ext: set[str]) -> str:
+    """Dá o nome do perfil da matriz do Core que tem as extensões do perfil, sem as extras.
+
+    Os nomes de `minimal_profiles.yaml` (como `rv32im_full`) são apelidos de cobertura; o `--profile` do
+    `riscv-tools` só conhece os nomes da matriz: a base, a letra `m` e os tokens na ordem da matriz. A matriz
+    só tem a base `rv32i`; a base E é ligada depois, em `IS_E` do `config_pkg`.
+    """
+    base = "rv32i" + ("m" if "M" in ext else "")
+    csr = ["Zicsr"] if "Zicsr" in ext and not {"Zicntr", "Zihpm"} & ext else []
+    tokens = [*(["Zicclsm"] if "Zicclsm" in ext else []), *csr,
+              *(e for e in ("Zicntr", "Zihpm", "Zifencei") if e in ext)]
+    if "Zmmul" in ext and "M" not in ext:
+        tokens.append("Zmmul")
+    return "_".join([base, *(t.lower() for t in tokens)])
+
+
 def profile_config_pkg(root: Path, out: Path, name: str, spec: str, ext: set[str]) -> str:
     """Pede ao `riscv-tools` o `config_pkg` do perfil na plataforma modular do Insper-RISC-V.
 
@@ -220,8 +236,7 @@ def profile_config_pkg(root: Path, out: Path, name: str, spec: str, ext: set[str
         O texto do `config_pkg` do perfil.
     """
     synced = out / "config.profile.yaml"
-    extras = {extra.lower() for extra in EXTRAS}
-    matrix_name = "_".join(part for part in name.split("_") if part.lower() not in extras)
+    matrix_name = matrix_profile_name(name, ext)
     subprocess.run(
         ["riscv-tools", "--profile", matrix_name, "--memory", spec, "platform", "sync", "--prefix", "Insper-RISC-V",
          "--source", _MODULAR_CONFIG, "--output", str(synced)],
@@ -229,6 +244,8 @@ def profile_config_pkg(root: Path, out: Path, name: str, spec: str, ext: set[str
         check=True,
     )
     text = str(yaml.safe_load(synced.read_text())["sim"]["config_pkg"])
+    if is_e(name):
+        text = re.sub(r"(constant IS_E\s*:\s*boolean\s*:=\s*)false", r"\1true", text)
     if not has_csr(ext):
         text = re.sub(r"(constant HAS_INTERRUPTS\s*:\s*boolean\s*:=\s*)true", r"\1false", text)
     for extra in EXTRAS:
