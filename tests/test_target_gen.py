@@ -13,6 +13,14 @@ import memory_models  # noqa: E402
 import target_gen  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _fake_profile_config_pkg(monkeypatch: pytest.MonkeyPatch) -> None:
+    """O `riscv-tools platform sync` vem da imagem; aqui o `config_pkg` do perfil é um texto fixo."""
+    monkeypatch.setattr(
+        target_gen, "profile_config_pkg", lambda root, out, name, spec, csr: f"-- config_pkg de {name}\nconstant IS_E : boolean := false;\n"
+    )
+
+
 def test_generated_target_follows_the_memory_model(tmp_path: Path) -> None:
     """O alvo de um perfil de referência traz o config com os genéricos do modelo de memória e a variante de Zifencei."""
     model = memory_models.parse("rom=ext,ram=ext,icache=on,dcache=on")
@@ -21,6 +29,7 @@ def test_generated_target_follows_the_memory_model(tmp_path: Path) -> None:
     assert config == tmp_path / "config.yaml"
     assert 'ROM_EXTERNAL: "true"' in text and 'RAM_EXTERNAL: "true"' in text
     assert "jobs: 4" in text and "sdram_base: 0x100000" in text
+    assert "  config_pkg: |\n    -- config_pkg de rv32im_zifencei\n    constant IS_E" in text and "HAS_M" not in text
     assert (tmp_path / "act/rv32im_zifencei__rom-ext_ram-ext_ic-on_dc-on/test_config.yaml").exists()
     assert (tmp_path / "act/rv32im_zifencei__rom-ext_ram-ext_ic-on_dc-on-ram/link.ld").exists()
 

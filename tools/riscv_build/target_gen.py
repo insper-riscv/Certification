@@ -11,10 +11,13 @@ import json
 import os
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
+import yaml
+
 from memory_models import MemoryModel
-from profile_params import extension_list, has_csr, is_e, parameter_lines
+from profile_params import extension_list, has_csr, is_e
 
 # Alvo-modelo que todo perfil copia.
 BASE = "rv32im-min"
@@ -186,6 +189,47 @@ def _relative(path: Path, root: Path) -> str:
         return path.as_posix()
 
 
+_MODULAR_CONFIG = "Insper-RISC-V/src/simulation/modular/config.yaml"
+
+
+def profile_config_pkg(root: Path, out: Path, name: str, spec: str, csr: bool) -> str:
+    """Pede ao `riscv-tools` o `config_pkg` do perfil na plataforma modular do Insper-RISC-V.
+
+    O topo modular não tem mais um genérico por extensão: a base e as extensões do núcleo são constantes do
+    `config_pkg`, e o `platform sync` escreve o dele para o perfil e o modelo de memória em `sim.config_pkg`.
+
+    Parameters
+    ----------
+    root : Path
+        Raiz do repositório (o `platform sync` roda aqui, com os caminhos do submódulo).
+    out : Path
+        Pasta que recebe o config sincronizado.
+    name : str
+        Nome do perfil (`--profile`).
+    spec : str
+        O modelo de memória (`--memory`).
+    csr : bool
+        Se o perfil tem CSRs. A plataforma modular tem interrupções, que exigem Zicsr, então um perfil sem CSR as
+        desliga (`HAS_INTERRUPTS` falso), senão o `config_pkg` falha na elaboração.
+
+    Returns
+    -------
+    str
+        O texto do `config_pkg` do perfil.
+    """
+    synced = out / "config.profile.yaml"
+    subprocess.run(
+        ["riscv-tools", "--profile", name, "--memory", spec, "platform", "sync", "--prefix", "Insper-RISC-V",
+         "--source", _MODULAR_CONFIG, "--output", str(synced)],
+        cwd=root,
+        check=True,
+    )
+    text = str(yaml.safe_load(synced.read_text())["sim"]["config_pkg"])
+    if not csr:
+        text = re.sub(r"(constant HAS_INTERRUPTS\s*:\s*boolean\s*:=\s*)true", r"\1false", text)
+    return text
+
+
 def write_generated(root: Path, out: Path, name: str, ext: set[str], model: MemoryModel, jobs: int | None) -> Path:
     """Gera, sem versionar, o alvo ACT4 de um perfil para um modelo de memória e o config do `certify`.
 
@@ -244,6 +288,8 @@ def write_generated(root: Path, out: Path, name: str, ext: set[str], model: Memo
         place = "  flash_base: 0x0\n  sdram_base: 0x100000\n"
     isa = "isa:\n  base: e\n\n" if is_e(name) else ""
     jobs_line = f"  jobs: {jobs}\n" if jobs is not None else ""
+    pkg = profile_config_pkg(root, out, name, model.spec, has_csr(ext))
+    config_pkg = "".join(f"    {line}\n" if line else "\n" for line in pkg.splitlines())
     base = Path(root / "tools/riscv_build/config.modular.yaml")
     config = out / "config.yaml"
     config.write_text(
@@ -256,11 +302,13 @@ def write_generated(root: Path, out: Path, name: str, ext: set[str], model: Memo
         "\n"
         f"{isa}"
         "sim:\n"
+        "  # the base and the extensions of the profile are constants of its config_pkg, not generics of the top\n"
+        "  config_pkg: |\n"
+        f"{config_pkg}"
         "  parameters:\n"
         f"{images}"
         f'    ROM_EXTERNAL: "{str(model.rom_external).lower()}"\n'
         f'    RAM_EXTERNAL: "{str(model.ram_external).lower()}"\n'
-        f"{parameter_lines(ext, name)}"
         "\n"
         "act:\n"
         f"{jobs_line}"
