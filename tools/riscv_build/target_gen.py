@@ -17,7 +17,7 @@ from pathlib import Path
 import yaml
 
 from memory_models import MemoryModel
-from profile_params import extension_list, has_csr, is_e
+from profile_params import EXTRAS, extension_list, has_csr, is_e
 
 # Alvo-modelo que todo perfil copia.
 BASE = "rv32im-min"
@@ -192,7 +192,7 @@ def _relative(path: Path, root: Path) -> str:
 _MODULAR_CONFIG = "Insper-RISC-V/src/simulation/modular/config.yaml"
 
 
-def profile_config_pkg(root: Path, out: Path, name: str, spec: str, csr: bool) -> str:
+def profile_config_pkg(root: Path, out: Path, name: str, spec: str, ext: set[str]) -> str:
     """Pede ao `riscv-tools` o `config_pkg` do perfil na plataforma modular do Insper-RISC-V.
 
     O topo modular não tem mais um genérico por extensão: a base e as extensões do núcleo são constantes do
@@ -208,9 +208,11 @@ def profile_config_pkg(root: Path, out: Path, name: str, spec: str, csr: bool) -
         Nome do perfil (`--profile`).
     spec : str
         O modelo de memória (`--memory`).
-    csr : bool
-        Se o perfil tem CSRs. A plataforma modular tem interrupções, que exigem Zicsr, então um perfil sem CSR as
-        desliga (`HAS_INTERRUPTS` falso), senão o `config_pkg` falha na elaboração.
+    ext : set of str
+        As extensões do perfil. A plataforma modular tem interrupções, que exigem Zicsr, então um perfil sem CSR as
+        desliga (`HAS_INTERRUPTS` falso), senão o `config_pkg` falha na elaboração. As extensões fora da matriz do
+        Core (Zimop, Zicond, Zihintntl e Zihintpause) não entram no nome de `--profile`: o `config_pkg` sai para o
+        perfil da matriz e cada uma é ligada ou desligada pelo que o perfil tem.
 
     Returns
     -------
@@ -218,15 +220,20 @@ def profile_config_pkg(root: Path, out: Path, name: str, spec: str, csr: bool) -
         O texto do `config_pkg` do perfil.
     """
     synced = out / "config.profile.yaml"
+    extras = {extra.lower() for extra in EXTRAS}
+    matrix_name = "_".join(part for part in name.split("_") if part.lower() not in extras)
     subprocess.run(
-        ["riscv-tools", "--profile", name, "--memory", spec, "platform", "sync", "--prefix", "Insper-RISC-V",
+        ["riscv-tools", "--profile", matrix_name, "--memory", spec, "platform", "sync", "--prefix", "Insper-RISC-V",
          "--source", _MODULAR_CONFIG, "--output", str(synced)],
         cwd=root,
         check=True,
     )
     text = str(yaml.safe_load(synced.read_text())["sim"]["config_pkg"])
-    if not csr:
+    if not has_csr(ext):
         text = re.sub(r"(constant HAS_INTERRUPTS\s*:\s*boolean\s*:=\s*)true", r"\1false", text)
+    for extra in EXTRAS:
+        flag = str(extra in ext).lower()
+        text = re.sub(rf"(constant HAS_{extra.upper()}\s*:\s*boolean\s*:=\s*)(?:true|false)", rf"\g<1>{flag}", text)
     return text
 
 
@@ -288,7 +295,7 @@ def write_generated(root: Path, out: Path, name: str, ext: set[str], model: Memo
         place = "  flash_base: 0x0\n  sdram_base: 0x100000\n"
     isa = "isa:\n  base: e\n\n" if is_e(name) else ""
     jobs_line = f"  jobs: {jobs}\n" if jobs is not None else ""
-    pkg = profile_config_pkg(root, out, name, model.spec, has_csr(ext))
+    pkg = profile_config_pkg(root, out, name, model.spec, ext)
     config_pkg = "".join(f"    {line}\n" if line else "\n" for line in pkg.splitlines())
     base = Path(root / "tools/riscv_build/config.modular.yaml")
     config = out / "config.yaml"

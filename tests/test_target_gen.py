@@ -17,7 +17,7 @@ import target_gen  # noqa: E402
 def _fake_profile_config_pkg(monkeypatch: pytest.MonkeyPatch) -> None:
     """O `riscv-tools platform sync` vem da imagem; aqui o `config_pkg` do perfil é um texto fixo."""
     monkeypatch.setattr(
-        target_gen, "profile_config_pkg", lambda root, out, name, spec, csr: f"-- config_pkg de {name}\nconstant IS_E : boolean := false;\n"
+        target_gen, "profile_config_pkg", lambda root, out, name, spec, ext: f"-- config_pkg de {name}\nconstant IS_E : boolean := false;\n"
     )
 
 
