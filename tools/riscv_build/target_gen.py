@@ -28,6 +28,38 @@ _EXTRA_VERSIONS = {
 }
 
 
+# O schema de configuração do Sail (commit 71312d5, 2026-11-21) passou a exigir estas propriedades. O núcleo não tem
+# S nem as extensões que as usam, então ficam desligadas, com os valores do `--print-default-config` do Sail.
+_SAIL_REQUIRED_BASE = {
+    "envcfg": {
+        "menvcfg_legal_cbie": "CBIE_AllowFlushAndInval",
+        "senvcfg_legal_cbie": "CBIE_AllowFlushAndInval",
+        "henvcfg_legal_cbie": "CBIE_AllowFlushAndInval",
+    }
+}
+_SAIL_REQUIRED_EXTENSIONS = {
+    "Svpbmt": {"nc_overrides": {"None": None}, "io_overrides": {"None": None}},
+    "Smcdeleg": {"supported": False},
+    "Ssccfg": {"supported": False},
+}
+
+
+def complete_sail_config(sj: dict) -> None:
+    """Acrescenta ao `sail.json` o que o schema atual do Sail exige e o arquivo ainda não tem.
+
+    Parameters
+    ----------
+    sj : dict
+        A configuração do Sail, alterada no lugar.
+    """
+    for key, value in _SAIL_REQUIRED_BASE.items():
+        sj["base"].setdefault(key, json.loads(json.dumps(value)))
+    for name, fields in _SAIL_REQUIRED_EXTENSIONS.items():
+        entry = sj["extensions"].setdefault(name, {})
+        for key, value in fields.items():
+            entry.setdefault(key, json.loads(json.dumps(value)))
+
+
 def write_target(rb: Path, name: str, ext: set[str], dst: Path, tgt: str, rel: str | None = None) -> None:
     """Copia o alvo-modelo para `dst` e o ajusta ao perfil.
 
@@ -121,6 +153,7 @@ def write_target(rb: Path, name: str, ext: set[str], dst: Path, tgt: str, rel: s
         for region in sj["memory"]["regions"]:
             if region["attributes"]["mem_type"] == "MainMemory":
                 region["attributes"]["misaligned_exceptions"]["load_store"] = {"None": None}
+    complete_sail_config(sj)
     (dst / "sail.json").write_text(json.dumps(sj, indent=2))
 
     # test_config

@@ -113,6 +113,11 @@
     "misa": {
       "implemented": true,
       "has_non_standard_extensions": false
+    },
+    "envcfg": {
+      "menvcfg_legal_cbie": "CBIE_AllowFlushAndInval",
+      "senvcfg_legal_cbie": "CBIE_AllowFlushAndInval",
+      "henvcfg_legal_cbie": "CBIE_AllowFlushAndInval"
     }
   },
   "memory": {
@@ -720,7 +725,13 @@
       "mcid_length": 12
     },
     "Svpbmt": {
-      "supported": false
+      "supported": false,
+      "nc_overrides": {
+        "None": null
+      },
+      "io_overrides": {
+        "None": null
+      }
     },
     "Svvptc": {
       "supported": false
@@ -815,6 +826,12 @@
     "Smcsrind": {
       "supported": false,
       "miselectlen": 12
+    },
+    "Smcdeleg": {
+      "supported": false
+    },
+    "Ssccfg": {
+      "supported": false
     }
   }
 }
