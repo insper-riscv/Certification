@@ -11,10 +11,13 @@ import json
 import os
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
+import yaml
+
 from memory_models import MemoryModel
-from profile_params import extension_list, has_csr, is_e, parameter_lines
+from profile_params import EXTRAS, extension_list, has_csr, is_e
 
 # Alvo-modelo que todo perfil copia.
 BASE = "rv32im-min"
@@ -26,6 +29,38 @@ _EXTRA_VERSIONS = {
     "Zihintntl": "= 1.0.0",
     "Zihintpause": "= 2.0.0",
 }
+
+
+# O schema de configuração do Sail (commit 71312d5, 2026-11-21) passou a exigir estas propriedades. O núcleo não tem
+# S nem as extensões que as usam, então ficam desligadas, com os valores do `--print-default-config` do Sail.
+_SAIL_REQUIRED_BASE = {
+    "envcfg": {
+        "menvcfg_legal_cbie": "CBIE_AllowFlushAndInval",
+        "senvcfg_legal_cbie": "CBIE_AllowFlushAndInval",
+        "henvcfg_legal_cbie": "CBIE_AllowFlushAndInval",
+    }
+}
+_SAIL_REQUIRED_EXTENSIONS = {
+    "Svpbmt": {"nc_overrides": {"None": None}, "io_overrides": {"None": None}},
+    "Smcdeleg": {"supported": False},
+    "Ssccfg": {"supported": False},
+}
+
+
+def complete_sail_config(sj: dict) -> None:
+    """Acrescenta ao `sail.json` o que o schema atual do Sail exige e o arquivo ainda não tem.
+
+    Parameters
+    ----------
+    sj : dict
+        A configuração do Sail, alterada no lugar.
+    """
+    for key, value in _SAIL_REQUIRED_BASE.items():
+        sj["base"].setdefault(key, json.loads(json.dumps(value)))
+    for name, fields in _SAIL_REQUIRED_EXTENSIONS.items():
+        entry = sj["extensions"].setdefault(name, {})
+        for key, value in fields.items():
+            entry.setdefault(key, json.loads(json.dumps(value)))
 
 
 def write_target(rb: Path, name: str, ext: set[str], dst: Path, tgt: str, rel: str | None = None) -> None:
@@ -121,6 +156,7 @@ def write_target(rb: Path, name: str, ext: set[str], dst: Path, tgt: str, rel: s
         for region in sj["memory"]["regions"]:
             if region["attributes"]["mem_type"] == "MainMemory":
                 region["attributes"]["misaligned_exceptions"]["load_store"] = {"None": None}
+    complete_sail_config(sj)
     (dst / "sail.json").write_text(json.dumps(sj, indent=2))
 
     # test_config
@@ -151,6 +187,71 @@ def _relative(path: Path, root: Path) -> str:
         return path.relative_to(root).as_posix()
     except ValueError:
         return path.as_posix()
+
+
+_MODULAR_CONFIG = "Insper-RISC-V/src/simulation/modular/config.yaml"
+
+
+def matrix_profile_name(name: str, ext: set[str]) -> str:
+    """Dá o nome do perfil da matriz do Core que tem as extensões do perfil, sem as extras.
+
+    Os nomes de `minimal_profiles.yaml` (como `rv32im_full`) são apelidos de cobertura; o `--profile` do
+    `riscv-tools` só conhece os nomes da matriz: a base, a letra `m` e os tokens na ordem da matriz. A matriz
+    só tem a base `rv32i`; a base E é ligada depois, em `IS_E` do `config_pkg`.
+    """
+    base = "rv32i" + ("m" if "M" in ext else "")
+    csr = ["Zicsr"] if "Zicsr" in ext and not {"Zicntr", "Zihpm"} & ext else []
+    tokens = [*(["Zicclsm"] if "Zicclsm" in ext else []), *csr,
+              *(e for e in ("Zicntr", "Zihpm", "Zifencei") if e in ext)]
+    if "Zmmul" in ext and "M" not in ext:
+        tokens.append("Zmmul")
+    return "_".join([base, *(t.lower() for t in tokens)])
+
+
+def profile_config_pkg(root: Path, out: Path, name: str, spec: str, ext: set[str]) -> str:
+    """Pede ao `riscv-tools` o `config_pkg` do perfil na plataforma modular do Insper-RISC-V.
+
+    O topo modular não tem mais um genérico por extensão: a base e as extensões do núcleo são constantes do
+    `config_pkg`, e o `platform sync` escreve o dele para o perfil e o modelo de memória em `sim.config_pkg`.
+
+    Parameters
+    ----------
+    root : Path
+        Raiz do repositório (o `platform sync` roda aqui, com os caminhos do submódulo).
+    out : Path
+        Pasta que recebe o config sincronizado.
+    name : str
+        Nome do perfil (`--profile`).
+    spec : str
+        O modelo de memória (`--memory`).
+    ext : set of str
+        As extensões do perfil. A plataforma modular tem interrupções, que exigem Zicsr, então um perfil sem CSR as
+        desliga (`HAS_INTERRUPTS` falso), senão o `config_pkg` falha na elaboração. As extensões fora da matriz do
+        Core (Zimop, Zicond, Zihintntl e Zihintpause) não entram no nome de `--profile`: o `config_pkg` sai para o
+        perfil da matriz e cada uma é ligada ou desligada pelo que o perfil tem.
+
+    Returns
+    -------
+    str
+        O texto do `config_pkg` do perfil.
+    """
+    synced = out / "config.profile.yaml"
+    matrix_name = matrix_profile_name(name, ext)
+    subprocess.run(
+        ["riscv-tools", "--profile", matrix_name, "--memory", spec, "platform", "sync", "--prefix", "Insper-RISC-V",
+         "--source", _MODULAR_CONFIG, "--output", str(synced)],
+        cwd=root,
+        check=True,
+    )
+    text = str(yaml.safe_load(synced.read_text())["sim"]["config_pkg"])
+    if is_e(name):
+        text = re.sub(r"(constant IS_E\s*:\s*boolean\s*:=\s*)false", r"\1true", text)
+    if not has_csr(ext):
+        text = re.sub(r"(constant HAS_INTERRUPTS\s*:\s*boolean\s*:=\s*)true", r"\1false", text)
+    for extra in EXTRAS:
+        flag = str(extra in ext).lower()
+        text = re.sub(rf"(constant HAS_{extra.upper()}\s*:\s*boolean\s*:=\s*)(?:true|false)", rf"\g<1>{flag}", text)
+    return text
 
 
 def write_generated(root: Path, out: Path, name: str, ext: set[str], model: MemoryModel, jobs: int | None) -> Path:
@@ -211,6 +312,8 @@ def write_generated(root: Path, out: Path, name: str, ext: set[str], model: Memo
         place = "  flash_base: 0x0\n  sdram_base: 0x100000\n"
     isa = "isa:\n  base: e\n\n" if is_e(name) else ""
     jobs_line = f"  jobs: {jobs}\n" if jobs is not None else ""
+    pkg = profile_config_pkg(root, out, name, model.spec, ext)
+    config_pkg = "".join(f"    {line}\n" if line else "\n" for line in pkg.splitlines())
     base = Path(root / "tools/riscv_build/config.modular.yaml")
     config = out / "config.yaml"
     config.write_text(
@@ -223,11 +326,13 @@ def write_generated(root: Path, out: Path, name: str, ext: set[str], model: Memo
         "\n"
         f"{isa}"
         "sim:\n"
+        "  # the base and the extensions of the profile are constants of its config_pkg, not generics of the top\n"
+        "  config_pkg: |\n"
+        f"{config_pkg}"
         "  parameters:\n"
         f"{images}"
         f'    ROM_EXTERNAL: "{str(model.rom_external).lower()}"\n'
         f'    RAM_EXTERNAL: "{str(model.ram_external).lower()}"\n'
-        f"{parameter_lines(ext, name)}"
         "\n"
         "act:\n"
         f"{jobs_line}"

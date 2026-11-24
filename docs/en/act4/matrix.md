@@ -107,11 +107,27 @@ The `ROM_EXTERNAL` and `RAM_EXTERNAL` generics of `act_modular_top` follow the m
 
 | Workflow | Trigger | Crosses | Controls |
 | :--- | :--- | :--- | :--- |
-| `certification (ACT4)` | `pull_request`, `push` on `main` | The <!-- gen:profiles -->18<!-- /gen --> minimal profiles with the accepted models (<!-- gen:jobs -->63<!-- /gen --> jobs) | `max-parallel` of 8, `concurrency` per branch, `act.jobs` of 4 |
+| `certification (ACT4)` | `pull_request`, `push` on `main` | The <!-- gen:profiles -->18<!-- /gen --> minimal profiles with the accepted models (<!-- gen:jobs -->63<!-- /gen --> jobs) | `max-parallel` of 4, `concurrency` per branch, `act.jobs` of 4 |
 | `certification (ACT4, all profiles and memory models)` | Manual, with a key | Every profile (the 120 reference ones of the Core matrix, without Zimop and Zicond, and the minimal ones) with the accepted models | `confirmation` (value of the secret `CERTIFICATION_RUN_SECRET`), `target`, `jobs`, `max-parallel`, `memory`, `only` |
 | `certification (ACT4, one profile and memory model)` | Manual | One profile and one model | `profile`, `memory`, `target`, `jobs` |
 
 The `target` input is `simulated` (GHDL on GitHub runners) or `real` (the DE0-CV board, on a self-hosted runner). The value `real` ends the workflow with a message, because the board runner is not configured. Every input reaches the shell through environment variables and goes through a character whitelist before use, and the `plan` job prints the matrix to the log and to the job summary before any simulation.
+
+### 5.1. Where the jobs run
+
+The `act4` job of the workflows `certification (ACT4)` and `certification (ACT4, all profiles and memory models)` runs on the self-hosted runners labeled `cert`, one per workstation, and each runner executes one job at a time. For that reason `max-parallel` is 4. The jobs `plan`, `check`, `act4-im` and `tree` run on `ubuntu-26.04`, hosted by GitHub.
+
+| Condition | Runner of the `act4` job |
+| :--- | :--- |
+| Organization variable `RUNNERS_CERT` unset or different from `hosted` | `self-hosted` with the label `cert` |
+| `RUNNERS_CERT` equal to `hosted` | `ubuntu-26.04` |
+| Pull request from a fork | `ubuntu-26.04`, always |
+
+To return to the hosted runner for the whole organization, run the command below; to return to the self-hosted one, delete the variable with `gh variable delete RUNNERS_CERT --org insper-riscv`.
+
+```bash
+gh variable set RUNNERS_CERT --org insper-riscv --visibility all --body hosted
+```
 
 ## 6. Sizing
 
@@ -128,7 +144,7 @@ Each job simulates the tests of the profile one by one, and each test reanalyzes
 
 The table lists pairs run with `--jobs 6` in 6-CPU containers of the `ci-act4` image; every test passed. The time is wall-clock, and the peak RAM is that of the largest process of the simulation. With an internal RAM (architectures `A` and `C`) the peak is 5.9 GiB, and with an external RAM (`B` and `D`) it is 3.0 GiB. One test takes 8 to 10 s, almost all of it analyzing the VHDL.
 
-The <!-- gen:jobs -->63<!-- /gen --> jobs of the automatic workflow add up to <!-- gen:runs -->3289<!-- /gen --> test runs, about <!-- gen:hours -->9<!-- /gen --> hours of simulation, not counting the recursive checkout, `uv sync` and the generation of the ELFs. With `max-parallel` of 8 the estimate for the certification is about <!-- gen:wall -->2<!-- /gen --> h, and the largest job takes about 15 minutes of simulation (<!-- gen:largest -->`rv32im_full_zifencei`<!-- /gen -->, with <!-- gen:largest_tests -->114<!-- /gen --> tests). The testbench of the internal RAM waits up to 8 million cycles for `tohost`, because an external ROM behind the instruction cache multiplies the duration of the long tests. The memory limit of a standard GitHub runner (16 GiB) fits any job.
+The <!-- gen:jobs -->63<!-- /gen --> jobs of the automatic workflow add up to <!-- gen:runs -->3289<!-- /gen --> test runs, about <!-- gen:hours -->9<!-- /gen --> hours of simulation, not counting the recursive checkout, `uv sync` and the generation of the ELFs. With `max-parallel` of 4 the estimate for the certification is about <!-- gen:wall -->3<!-- /gen --> h, and the largest job takes about 15 minutes of simulation (<!-- gen:largest -->`rv32im_full_zifencei`<!-- /gen -->, with <!-- gen:largest_tests -->114<!-- /gen --> tests). The testbench of the internal RAM waits up to 8 million cycles for `tohost`, because an external ROM behind the instruction cache multiplies the duration of the long tests. Each workstation has 28 CPUs and 31 GB of RAM, which fits any job.
 
 ---
 

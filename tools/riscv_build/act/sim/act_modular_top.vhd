@@ -29,32 +29,7 @@ entity act_modular_top is
     -- Bordas entre as palavras seguintes da mesma linha do chip de FLASH.
     flash_next_latency  : natural := 4;
     -- Bordas entre o pedido e a conclusão de um acesso ao chip de RAM.
-    ext_ram_latency     : natural := 8;
-    -- Extensões do perfil.
-    -- RV32E (16 registradores) no lugar do RV32I.
-    has_e         : boolean := false;
-    -- Inclui a extensão Zicsr.
-    has_zicsr     : boolean := false;
-    -- Inclui a extensão Zicntr.
-    has_zicntr    : boolean := false;
-    -- Inclui a extensão Zihpm.
-    has_zihpm     : boolean := false;
-    -- Inclui a extensão M completa.
-    has_m         : boolean := false;
-    -- Inclui a extensão Zmmul.
-    has_zmmul     : boolean := false;
-    -- Inclui a extensão Zifencei.
-    has_zifencei  : boolean := false;
-    -- Inclui a extensão Zicclsm.
-    has_zicclsm   : boolean := false;
-    -- Inclui a extensão Zimop.
-    has_zimop     : boolean := false;
-    -- Inclui a extensão Zicond.
-    has_zicond    : boolean := false;
-    -- Inclui as dicas ntl.* da extensão Zihintntl.
-    has_zihintntl : boolean := false;
-    -- Inclui a dica pause da extensão Zihintpause.
-    has_zihintpause : boolean := false
+    ext_ram_latency     : natural := 8
   );
   port (
     -- Clock do núcleo.
@@ -91,19 +66,7 @@ begin
       ram_external        => ram_external,
       flash_first_latency => flash_first_latency,
       flash_next_latency  => flash_next_latency,
-      ext_ram_latency     => ext_ram_latency,
-      has_e               => has_e,
-      has_zicsr           => has_zicsr,
-      has_zicntr          => has_zicntr,
-      has_zihpm           => has_zihpm,
-      has_m               => has_m,
-      has_zmmul           => has_zmmul,
-      has_zifencei        => has_zifencei,
-      has_zicclsm         => has_zicclsm,
-      has_zimop           => has_zimop,
-      has_zicond          => has_zicond,
-      has_zihintntl       => has_zihintntl,
-      has_zihintpause     => has_zihintpause
+      ext_ram_latency     => ext_ram_latency
     )
     port map (
       i_clk           => i_clk,
